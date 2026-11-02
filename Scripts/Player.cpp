@@ -1,6 +1,6 @@
 #include "FilesContainer.h"
 #include "Player.h"
-#include "../Packages/miniaudio.h"
+#include "../Installs/miniaudio.h"
 
 namespace MusicPlayer
 {
