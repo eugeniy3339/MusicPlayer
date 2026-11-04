@@ -17,7 +17,8 @@ namespace MusicPlayer {
 
 	class FilesContainer {
 	private:
-		const std::string pathToMusicDirectory = "C:/Users/eugen/Music/TestMusic";
+		const std::string defaultPathToMusicDirectory = "C:\\Users\\eugen\\Music\\TestMusic";
+		std::string pathToMusicDirectory;
 
 		static FilesContainer* instance;
 		std::vector<MusicFile> files;
@@ -27,6 +28,7 @@ namespace MusicPlayer {
 
 		static FilesContainer* getInstance();
 		void ReloadList();
+		void SetPathToMusicDirectory(std::string path);
 		std::vector<MusicFile> GetFilesList(std::string path);
 		std::vector<MusicFile>* getFiles();
 	};

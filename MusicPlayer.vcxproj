@@ -126,8 +126,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Scripts\FilesContainer.cpp" />
-    <ClCompile Include="Scripts\Player.cpp" />
+    <ClCompile Include="Scripts\Data\FilesContainer.cpp" />
+    <ClCompile Include="Scripts\Logic\Player.cpp" />
     <ClCompile Include="external\imgui\imgui.cpp" />
     <ClCompile Include="external\imgui\imgui_draw.cpp" />
     <ClCompile Include="external\imgui\imgui_tables.cpp" />
@@ -135,8 +135,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Packages\miniaudio.h" />
-    <ClInclude Include="Scripts\FilesContainer.h" />
-    <ClInclude Include="Scripts\Player.h" />
+    <ClInclude Include="Scripts\Data\FilesContainer.h" />
+    <ClInclude Include="Scripts\Logic\Player.h" />
     <ClInclude Include="external\imgui\imconfig.h" />
     <ClInclude Include="external\imgui\imgui.h" />
     <ClInclude Include="external\imgui\imgui_internal.h" />
