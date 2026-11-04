@@ -16,16 +16,22 @@
     <Filter Include="External\Dear ImGui">
       <UniqueIdentifier>{96f2ddbd-0a47-4e8b-a6a3-92f4c15c1171}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Presentation">
+      <UniqueIdentifier>{70c364f7-ef59-4c34-9a44-c96aa303ec3e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Scripts\FilesContainer.cpp">
+    <ClCompile Include="Scripts\Data\FilesContainer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Scripts\Player.cpp">
+    <ClCompile Include="Scripts\Logic\Player.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Scripts\Presentation\MusicPlayerView.cpp">
+      <Filter>Presentation</Filter>
     </ClCompile>
     <ClCompile Include="external\imgui\imgui.cpp">
       <Filter>External\Dear ImGui</Filter>
@@ -39,15 +45,24 @@
     <ClCompile Include="external\imgui\imgui_widgets.cpp">
       <Filter>External\Dear ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="external\imgui\backends\imgui_impl_win32.cpp">
+      <Filter>External\Dear ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\backends\imgui_impl_dx11.cpp">
+      <Filter>External\Dear ImGui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Scripts\FilesContainer.h">
+    <ClInclude Include="Scripts\Data\FilesContainer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Scripts\Player.h">
+    <ClInclude Include="Scripts\Logic\Player.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Packages\miniaudio.h">
+    <ClInclude Include="Scripts\Presentation\MusicPlayerView.h">
+      <Filter>Presentation</Filter>
+    </ClInclude>
+    <ClInclude Include="external\miniaudio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="external\imgui\imconfig.h">
@@ -66,6 +81,12 @@
       <Filter>External\Dear ImGui</Filter>
     </ClInclude>
     <ClInclude Include="external\imgui\imstb_truetype.h">
+      <Filter>External\Dear ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="external\imgui\backends\imgui_impl_win32.h">
+      <Filter>External\Dear ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="external\imgui\backends\imgui_impl_dx11.h">
       <Filter>External\Dear ImGui</Filter>
     </ClInclude>
   </ItemGroup>
