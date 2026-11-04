@@ -126,15 +126,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-<<<<<<< Updated upstream
-    <ClCompile Include="Scripts\FilesContainer.cpp" />
-    <ClCompile Include="Scripts\Player.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Packages\miniaudio.h" />
-    <ClInclude Include="Scripts\FilesContainer.h" />
-    <ClInclude Include="Scripts\Player.h" />
-=======
     <ClCompile Include="Scripts\Data\FilesContainer.cpp" />
     <ClCompile Include="Scripts\Logic\Player.cpp" />
     <ClCompile Include="Scripts\Presentation\MusicPlayerView.cpp" />
@@ -160,7 +151,6 @@
     <ClInclude Include="external\imgui\imstb_truetype.h" />
     <ClInclude Include="external\imgui\backends\imgui_impl_win32.h" />
     <ClInclude Include="external\imgui\backends\imgui_impl_dx11.h" />
->>>>>>> Stashed changes
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

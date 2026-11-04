@@ -18,14 +18,12 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Scripts\FilesContainer.cpp">
+    <ClCompile Include="Scripts\Data\FilesContainer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Scripts\Player.cpp">
+    <ClCompile Include="Scripts\Logic\Player.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-<<<<<<< Updated upstream
-=======
     <ClCompile Include="Scripts\Presentation\MusicPlayerView.cpp">
       <Filter>Presentation</Filter>
     </ClCompile>
@@ -50,18 +48,14 @@
     <ClCompile Include="external\imgui\backends\imgui_impl_dx11.cpp">
       <Filter>External\Dear ImGui</Filter>
     </ClCompile>
->>>>>>> Stashed changes
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Scripts\FilesContainer.h">
+    <ClInclude Include="Scripts\Data\FilesContainer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Scripts\Player.h">
+    <ClInclude Include="Scripts\Logic\Player.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-<<<<<<< Updated upstream
-    <ClInclude Include="Packages\miniaudio.h">
-=======
     <ClInclude Include="Scripts\Presentation\MusicPlayerView.h">
       <Filter>Presentation</Filter>
     </ClInclude>
@@ -69,7 +63,6 @@
       <Filter>Presentation</Filter>
     </ClInclude>
     <ClInclude Include="external\miniaudio.h">
->>>>>>> Stashed changes
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
