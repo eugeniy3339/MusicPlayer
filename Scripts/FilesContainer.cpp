@@ -23,7 +23,7 @@ namespace MusicPlayer {
 	FilesContainer* FilesContainer::instance = nullptr;
 	
 	FilesContainer::FilesContainer() {
-		if (instance != NULL)
+		if (instance != nullptr)
 		{
 			delete this;
 			return;

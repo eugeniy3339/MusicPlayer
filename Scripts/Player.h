@@ -6,12 +6,12 @@ namespace MusicPlayer {
 	private:
 		static Player* instance;
 
-		MusicFile& curFile;
+		MusicFile* curFile;
 		bool isPlaying;
 	public:
 		static Player* getInstance();
 
-		MusicFile& getCurFile();
+		MusicFile* getCurFile();
 		bool* getIsPlaying();
 
 		void Play(MusicFile& file);

@@ -1,16 +1,29 @@
 #include "FilesContainer.h"
 #include "Player.h"
-#include "../Installs/miniaudio.h"
+#include "../external/miniaudio.h"
 
 namespace MusicPlayer
 {
 	Player* Player::instance = nullptr;
 
+	Player::Player() {
+		if (instance != nullptr)
+		{
+			delete this;
+			return;
+		}
+		instance = this;
+		isPlaying = false;
+		curFile = nullptr;
+	}
+	Player::~Player() {
+	}
+
 	Player* Player::getInstance() {
 		return instance;
 	}
 
-	MusicFile& Player::getCurFile() {
+	MusicFile* Player::getCurFile() {
 		return curFile;
 	}
 	bool* Player::getIsPlaying() {
@@ -18,8 +31,7 @@ namespace MusicPlayer
 	}
 
 	void Player::Play(MusicFile& file) {
-
-		curFile = file;
+		curFile = &file;
 		isPlaying = true;
 	}
 
@@ -29,11 +41,5 @@ namespace MusicPlayer
 
 	void Player::Resume() {
 		isPlaying = true;
-	}
-
-	Player::Player() {
-		instance = this;
-	}
-	Player::~Player() {
 	}
 }
