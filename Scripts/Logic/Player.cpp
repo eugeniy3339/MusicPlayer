@@ -31,6 +31,8 @@ namespace MusicPlayer
 			instance = nullptr;
 	}
 
+
+
 	Player* Player::getInstance() {
 		return instance;
 	}

@@ -29,11 +29,14 @@ namespace MusicPlayer {
 			return;
 		}
 		instance = this;
+		pathToMusicDirectory = defaultPathToMusicDirectory;
 		files = GetFilesList(pathToMusicDirectory);
 	}
 
 	FilesContainer::~FilesContainer() {
 	}
+
+
 
 	FilesContainer* FilesContainer::getInstance() {
 		return instance;
@@ -63,6 +66,10 @@ namespace MusicPlayer {
 		return &files;
 	}
 
+	void FilesContainer::SetPathToMusicDirectory(std::string path) {
+		pathToMusicDirectory = path;
+		ReloadList();
+	}
 #pragma endregion
 }
 
