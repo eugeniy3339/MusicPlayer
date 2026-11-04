@@ -24,6 +24,33 @@
     <ClCompile Include="Scripts\Player.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+<<<<<<< Updated upstream
+=======
+    <ClCompile Include="Scripts\Presentation\MusicPlayerView.cpp">
+      <Filter>Presentation</Filter>
+    </ClCompile>
+    <ClCompile Include="Scripts\Presentation\Visuals.cpp">
+      <Filter>Presentation</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\imgui.cpp">
+      <Filter>External\Dear ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\imgui_draw.cpp">
+      <Filter>External\Dear ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\imgui_tables.cpp">
+      <Filter>External\Dear ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\imgui_widgets.cpp">
+      <Filter>External\Dear ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\backends\imgui_impl_win32.cpp">
+      <Filter>External\Dear ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="external\imgui\backends\imgui_impl_dx11.cpp">
+      <Filter>External\Dear ImGui</Filter>
+    </ClCompile>
+>>>>>>> Stashed changes
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Scripts\FilesContainer.h">
@@ -32,7 +59,17 @@
     <ClInclude Include="Scripts\Player.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+<<<<<<< Updated upstream
     <ClInclude Include="Packages\miniaudio.h">
+=======
+    <ClInclude Include="Scripts\Presentation\MusicPlayerView.h">
+      <Filter>Presentation</Filter>
+    </ClInclude>
+    <ClInclude Include="Scripts\Presentation\Visuals.h">
+      <Filter>Presentation</Filter>
+    </ClInclude>
+    <ClInclude Include="external\miniaudio.h">
+>>>>>>> Stashed changes
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

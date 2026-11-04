@@ -6,6 +6,7 @@ namespace MusicPlayer {
 	class Player {
 	private:
 		static Player* instance;
+		FilesContainer& filesContainer;
 
 		MusicFile* curFile;
 		bool isPlaying;
@@ -20,10 +21,15 @@ namespace MusicPlayer {
 		bool* getIsPlaying();
 
 		void Play(MusicFile& file);
+		void PlayNext();
+		void PlayPrevious();
 		void Pause();
 		void Resume();
 
-		Player();
+		explicit Player(FilesContainer& filesContainer);
 		~Player();
+
+	private:
+		void PlayAdjacent(int offset);
 	};
 }
