@@ -1,5 +1,5 @@
-#include "Scripts/FilesContainer.h"
-#include "Scripts/Player.h"
+#include "Scripts/Data/FilesContainer.h"
+#include "Scripts/Logic/Player.h"
 #include <iostream>
 
 using namespace MusicPlayer;

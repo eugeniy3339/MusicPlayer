@@ -1,7 +1,7 @@
 #define MINIAUDIO_IMPLEMENTATION
-#include "FilesContainer.h"
 #include "Player.h"
-#include "../external/miniaudio.h"
+#include "../Data/FilesContainer.h"
+#include "../../external/miniaudio.h"
 #include <iostream>
 
 namespace MusicPlayer

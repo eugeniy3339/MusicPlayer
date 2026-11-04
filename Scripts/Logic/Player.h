@@ -1,6 +1,6 @@
 #pragma once
-#include "FilesContainer.h"
-#include "../external/miniaudio.h"
+#include "../Data/FilesContainer.h"
+#include "../../external/miniaudio.h"
 
 namespace MusicPlayer {
 	class Player {
