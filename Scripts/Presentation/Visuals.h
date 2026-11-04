@@ -6,11 +6,11 @@
 namespace MusicPlayer {
 	class Visuals {
 	public:
-		Visuals(Player& player, Data& data);
+		Visuals(Player& player, FilesContainer& data);
 
 	private:
 		Player& player;
-		Data& data;
+		FilesContainer& data;
 
 		void Run();
 	};

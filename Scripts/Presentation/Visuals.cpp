@@ -112,7 +112,7 @@ namespace {
 }
 
 namespace MusicPlayer {
-	Visuals::Visuals(Player& player, Data& data) : player(player), data(data) {
+	Visuals::Visuals(Player& player, FilesContainer& data) : player(player), data(data) {
 		Run();
 	}
 
