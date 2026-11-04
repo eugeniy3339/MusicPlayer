@@ -7,6 +7,5 @@ int main() {
 	MusicPlayer::FilesContainer data{};
 	MusicPlayer::Player player(data);
 	MusicPlayer::Visuals visuals(player, data);
->>>>>>> Stashed changes
 	return 0;
 }
