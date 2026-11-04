@@ -1,6 +1,8 @@
+#define MINIAUDIO_IMPLEMENTATION
 #include "FilesContainer.h"
 #include "Player.h"
 #include "../external/miniaudio.h"
+#include <iostream>
 
 namespace MusicPlayer
 {
@@ -15,8 +17,18 @@ namespace MusicPlayer
 		instance = this;
 		isPlaying = false;
 		curFile = nullptr;
+		engineInitialized = ma_engine_init(nullptr, &engine) == MA_SUCCESS;
+		soundInitialized = false;
+		if (!engineInitialized)
+			std::cerr << "Failed to initialize miniaudio engine.\n";
 	}
 	Player::~Player() {
+		if (soundInitialized)
+			ma_sound_uninit(&sound);
+		if (engineInitialized)
+			ma_engine_uninit(&engine);
+		if (instance == this)
+			instance = nullptr;
 	}
 
 	Player* Player::getInstance() {
@@ -31,15 +43,42 @@ namespace MusicPlayer
 	}
 
 	void Player::Play(MusicFile& file) {
+		if (!engineInitialized)
+			return;
+
+		if (soundInitialized) {
+			ma_sound_uninit(&sound);
+			soundInitialized = false;
+		}
+		isPlaying = false;
+		curFile = nullptr;
+
+		const ma_result result = ma_sound_init_from_file(
+			&engine, file.getPath()->c_str(), 0, nullptr, nullptr, &sound);
+		if (result != MA_SUCCESS) {
+			std::cerr << "Failed to open audio file: " << *file.getPath()
+				<< " (miniaudio error " << result << ").\n";
+			return;
+		}
+
+		soundInitialized = true;
 		curFile = &file;
-		isPlaying = true;
+		if (ma_sound_start(&sound) == MA_SUCCESS)
+		{
+			isPlaying = true;
+			std::cout << "Playing!!!!!\n";
+		}
+		else
+			std::cerr << "Failed to start audio file: " << *file.getPath() << '\n';
 	}
 
 	void Player::Pause() {
-		isPlaying = false;
+		if (soundInitialized && isPlaying && ma_sound_stop(&sound) == MA_SUCCESS)
+			isPlaying = false;
 	}
 
 	void Player::Resume() {
-		isPlaying = true;
+		if (soundInitialized && !isPlaying && ma_sound_start(&sound) == MA_SUCCESS)
+			isPlaying = true;
 	}
 }

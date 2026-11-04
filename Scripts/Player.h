@@ -1,5 +1,6 @@
 #pragma once
 #include "FilesContainer.h"
+#include "../external/miniaudio.h"
 
 namespace MusicPlayer {
 	class Player {
@@ -8,6 +9,10 @@ namespace MusicPlayer {
 
 		MusicFile* curFile;
 		bool isPlaying;
+		ma_engine engine;
+		ma_sound sound;
+		bool engineInitialized;
+		bool soundInitialized;
 	public:
 		static Player* getInstance();
 

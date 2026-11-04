@@ -45,7 +45,6 @@ namespace MusicPlayer {
 
 	std::vector<MusicFile> FilesContainer::GetFilesList(std::string path) {
 		std::vector<MusicFile> filesList;
-		std::cout << "bzzz" << '\n';
 		if (!std::filesystem::exists(path) || !std::filesystem::is_directory(path)) {
 			return filesList;
 		}
@@ -53,7 +52,6 @@ namespace MusicPlayer {
 		for (const auto& entry : std::filesystem::directory_iterator(path)) {
 			if (entry.is_regular_file()) {
 				MusicFile file(entry.path().string());
-				std::cout << *file.getPath() << '\n';
 				filesList.push_back(file);
 			}
 		}
