@@ -1,5 +1,6 @@
 #pragma once
 #include "../Data/FilesContainer.h"
+#include "../Data/Saver.h"
 #include "../../external/miniaudio.h"
 
 namespace MusicPlayer {
@@ -7,6 +8,7 @@ namespace MusicPlayer {
 	private:
 		static Player* instance;
 		FilesContainer& filesContainer;
+		Saver& saver;
 
 		MusicFile* curFile;
 		bool isPlaying;
@@ -14,8 +16,10 @@ namespace MusicPlayer {
 		ma_sound sound;
 		bool engineInitialized;
 		bool soundInitialized;
+
+		float* volume;
 	public:
-		explicit Player(FilesContainer& filesContainer);
+		explicit Player(FilesContainer& filesContainer, Saver& saver);
 		~Player();
 
 		static Player* getInstance();
@@ -29,9 +33,14 @@ namespace MusicPlayer {
 		void Pause();
 		void Resume();
 
+		const float& getVolume();
+		void setVolume(float& volume);
+
 		eventpp::CallbackList<void(MusicFile)> onMusicStarted;
 		eventpp::CallbackList<void()> onMusicPaused;
 		eventpp::CallbackList<void()> onMusicResumed;
+
+		eventpp::CallbackList<void(float)> onVolumeChanged;
 
 	private:
 		void PlayAdjacent(int offset);

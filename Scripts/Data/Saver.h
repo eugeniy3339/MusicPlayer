@@ -16,7 +16,10 @@ namespace MusicPlayer {
 		void WriteJson() const;
 	public:
 		bool GetPath(std::string& path);
-		void SavePath(std::string* path);
+		void SavePath(std::string& path);
+
+		float GetVolume();
+		void SaveVolume(float& volume);
 
 		Saver();
 		~Saver();

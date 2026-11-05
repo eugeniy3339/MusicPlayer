@@ -54,10 +54,18 @@ namespace MusicPlayer {
 		path = curJson["Path"].get<std::string>();
 		return true;
 	}
-	void Saver::SavePath(std::string* path) {
-		if (path == nullptr)
-			return;
-		curJson["Path"] = *path;
+	void Saver::SavePath(std::string& path) {
+		curJson["Path"] = path;
+		WriteJson();
+	}
+
+	float Saver::GetVolume() {
+		if (curJson.contains("Volume") || !curJson["Volume"].is_boolean())
+			return false;
+		return curJson["Volume"].get<bool>();
+	}
+	void Saver::SaveVolume(float& volume) {
+		curJson["Volume"] = volume;
 		WriteJson();
 	}
 }

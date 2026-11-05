@@ -1,6 +1,5 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include "Player.h"
-#include "../Data/FilesContainer.h"
 #include "../../external/miniaudio.h"
 #include <iostream>
 
@@ -8,7 +7,7 @@ namespace MusicPlayer
 {
 	Player* Player::instance = nullptr;
 
-	Player::Player(FilesContainer& filesContainer) : filesContainer(filesContainer) {
+	Player::Player(FilesContainer& filesContainer, Saver& saver) : filesContainer(filesContainer), saver(saver) {
 		if (instance != nullptr)
 		{
 			delete this;
@@ -17,6 +16,7 @@ namespace MusicPlayer
 		instance = this;
 		isPlaying = false;
 		curFile = nullptr;
+		*volume = saver.GetVolume();
 		engineInitialized = ma_engine_init(nullptr, &engine) == MA_SUCCESS;
 		soundInitialized = false;
 		if (!engineInitialized)
@@ -116,5 +116,15 @@ namespace MusicPlayer
 			isPlaying = true;
 			onMusicResumed();
 		}
+	}
+
+	const float& Player::getVolume() {
+		return *volume;
+	}
+
+	void Player::setVolume(float& volume) {
+		*this->volume = volume;
+		saver.SaveVolume(volume);
+		onVolumeChanged(volume);
 	}
 }
