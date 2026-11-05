@@ -2,7 +2,6 @@
 #include <string>
 #include <vector>
 #include <filesystem>
-#include "Saves.h"
 
 namespace MusicPlayer {
 #pragma region  MusicFile
@@ -22,7 +21,7 @@ namespace MusicPlayer {
 
 	FilesContainer* FilesContainer::instance = nullptr;
 	
-	FilesContainer::FilesContainer(Saver saver) : saver(saver) {
+	FilesContainer::FilesContainer(Saver& saver) : saver(saver) {
 		if (instance != nullptr)
 		{
 			delete this;

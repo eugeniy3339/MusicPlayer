@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include <filesystem>
-#include "Saves.h"
+#include "Saver.h"
 
 namespace MusicPlayer {
 	class MusicFile {
@@ -23,9 +23,9 @@ namespace MusicPlayer {
 		static FilesContainer* instance;
 		std::vector<MusicFile> files;
 
-		Saver saver;
+		Saver& saver;
 	public:
-		FilesContainer(Saver saver);
+		FilesContainer(Saver& saver);
 		~FilesContainer();
 
 		static FilesContainer* getInstance();
