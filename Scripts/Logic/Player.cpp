@@ -55,7 +55,7 @@ namespace MusicPlayer
 		isPlaying = false;
 		curFile = nullptr;
 
-		const ma_result result = ma_sound_init_from_file(
+		const ma_result result = ma_sound_init_from_file_w(
 			&engine, file.getPath()->c_str(), 0, nullptr, nullptr, &sound);
 		if (result != MA_SUCCESS) {
 			std::cerr << "Failed to open audio file: " << *file.getPath()

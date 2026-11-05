@@ -8,12 +8,12 @@
 namespace MusicPlayer {
 	class MusicFile {
 	private:
-		std::string path;
+		std::filesystem::path path;
 	public:
-		MusicFile(std::string path);
+		MusicFile(std::filesystem::path path);
 		~MusicFile();
 
-		std::string* getPath();
+		std::filesystem::path* getPath();
 	};
 
 	class FilesContainer {

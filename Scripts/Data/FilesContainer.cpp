@@ -4,13 +4,19 @@
 #include <filesystem>
 
 namespace MusicPlayer {
+	namespace {
+		std::string PathToUtf8(const std::filesystem::path& path) {
+			auto value = path.u8string();
+			return std::string(value.begin(), value.end());
+		}
+	}
 #pragma region  MusicFile
 
-	std::string* MusicFile::getPath() {
+	std::filesystem::path* MusicFile::getPath() {
 		return &path;
 	}
 
-	MusicFile::MusicFile(std::string path) {
+	MusicFile::MusicFile(std::filesystem::path path) {
 		this->path = path;
 	}
 	MusicFile::~MusicFile() {
@@ -56,13 +62,14 @@ namespace MusicPlayer {
 
 	std::vector<MusicFile> FilesContainer::GetFilesList(std::string path) {
 		std::vector<MusicFile> filesList;
-		if (!std::filesystem::exists(path) || !std::filesystem::is_directory(path)) {
+		const auto root = std::filesystem::path(std::u8string(path.begin(), path.end()));
+		if (!std::filesystem::exists(root) || !std::filesystem::is_directory(root)) {
 			return filesList;
 		}
 
-		for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
-			if (entry.is_regular_file() && SupportsExtension(entry.path().extension().string())) {
-				MusicFile file(entry.path().string());
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(root)) {
+			if (entry.is_regular_file() && SupportsExtension(PathToUtf8(entry.path().extension()))) {
+				MusicFile file(entry.path());
 				filesList.push_back(file);
 			}
 		}

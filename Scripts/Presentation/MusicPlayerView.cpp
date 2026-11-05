@@ -13,6 +13,11 @@
 
 namespace MusicPlayer {
 	namespace {
+		std::string PathToUtf8(const std::filesystem::path& path) {
+			auto value = path.u8string();
+			return std::string(value.begin(), value.end());
+		}
+
 		MusicFile* GetCurrentTrack(Player& player, FilesContainer& files) {
 			MusicFile* current = player.getCurFile();
 			if (current == nullptr)
@@ -109,7 +114,7 @@ namespace MusicPlayer {
 			}
 		}
 		if (!selectedPath.empty())
-			files.SetPathToMusicDirectory(std::filesystem::path(selectedPath).string());
+			files.SetPathToMusicDirectory(PathToUtf8(std::filesystem::path(selectedPath)));
 
 		ImGui::SetNextWindowSize(ImVec2(900.0f, 620.0f), ImGuiCond_FirstUseEver);
 		ImGui::Begin("Music Player");
@@ -141,14 +146,15 @@ namespace MusicPlayer {
 			MusicFile* current = GetCurrentTrack(player, files);
 			for (std::size_t index = 0; index < tracks->size(); ++index) {
 				MusicFile& track = (*tracks)[index];
-				const std::string& path = *track.getPath();
-				const std::string title = std::filesystem::path(path).stem().string();
+				const std::filesystem::path& path = *track.getPath();
+				const std::string title = PathToUtf8(path.stem());
+				const std::string pathText = PathToUtf8(path);
 				const bool isCurrent = current == &track;
 				ImGui::PushID(static_cast<int>(index));
 				if (ImGui::Selectable(title.c_str(), isCurrent, ImGuiSelectableFlags_AllowDoubleClick))
 					player.Play(track);
 				if (ImGui::IsItemHovered())
-					ImGui::SetTooltip("%s", path.c_str());
+					ImGui::SetTooltip("%s", pathText.c_str());
 				ImGui::PopID();
 			}
 		}
@@ -158,9 +164,10 @@ namespace MusicPlayer {
 		MusicFile* current = GetCurrentTrack(player, files);
 		const bool playing = *player.getIsPlaying();
 		if (current != nullptr) {
-			const std::string title = std::filesystem::path(*current->getPath()).stem().string();
+			const std::string title = PathToUtf8(current->getPath()->stem());
+			const std::string pathText = PathToUtf8(*current->getPath());
 			ImGui::TextUnformatted(title.c_str());
-			ImGui::TextDisabled("%s", current->getPath()->c_str());
+			ImGui::TextDisabled("%s", pathText.c_str());
 		} else {
 			ImGui::TextUnformatted("Nothing playing");
 			ImGui::TextDisabled("Choose a track from your library");
