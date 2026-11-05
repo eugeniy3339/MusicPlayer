@@ -1,8 +1,8 @@
 #include "FilesContainer.h"
-#include <iostream>
 #include <string>
 #include <vector>
 #include <filesystem>
+#include "Saves.h"
 
 namespace MusicPlayer {
 #pragma region  MusicFile
@@ -22,14 +22,22 @@ namespace MusicPlayer {
 
 	FilesContainer* FilesContainer::instance = nullptr;
 	
-	FilesContainer::FilesContainer() {
+	FilesContainer::FilesContainer(Saver saver) : saver(saver) {
 		if (instance != nullptr)
 		{
 			delete this;
 			return;
 		}
 		instance = this;
-		pathToMusicDirectory = defaultPathToMusicDirectory;
+		std::string path;
+		if (this->saver.GetPath(path))
+		{
+			SetPathToMusicDirectory(path);
+		}
+		else
+		{
+			SetPathToMusicDirectory(defaultPathToMusicDirectory);
+		}
 		files = GetFilesList(pathToMusicDirectory);
 	}
 
@@ -68,7 +76,12 @@ namespace MusicPlayer {
 
 	void FilesContainer::SetPathToMusicDirectory(std::string path) {
 		pathToMusicDirectory = path;
+		saver.SavePath(&pathToMusicDirectory);
 		ReloadList();
+	}
+
+	std::string* FilesContainer::GetPathToMusicDirectory() {
+		return &pathToMusicDirectory;
 	}
 #pragma endregion
 }

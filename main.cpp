@@ -1,10 +1,12 @@
 #include "Scripts/Data/FilesContainer.h"
+#include "Scripts/Data/Saves.h"
 #include "Scripts/Logic/Player.h"
 #include "Scripts/Presentation/Visuals.h"
-#include <iostream>
+
 
 int main() {
-	MusicPlayer::FilesContainer data{};
+	MusicPlayer::Saver saver{};
+	MusicPlayer::FilesContainer data(saver);
 	MusicPlayer::Player player(data);
 	MusicPlayer::Visuals visuals(player, data);
 	return 0;

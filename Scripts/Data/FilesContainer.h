@@ -1,8 +1,8 @@
 #pragma once
-#include <iostream>
 #include <string>
 #include <vector>
 #include <filesystem>
+#include "Saves.h"
 
 namespace MusicPlayer {
 	class MusicFile {
@@ -22,13 +22,16 @@ namespace MusicPlayer {
 
 		static FilesContainer* instance;
 		std::vector<MusicFile> files;
+
+		Saver saver;
 	public:
-		FilesContainer();
+		FilesContainer(Saver saver);
 		~FilesContainer();
 
 		static FilesContainer* getInstance();
 		void ReloadList();
 		void SetPathToMusicDirectory(std::string path);
+		std::string* GetPathToMusicDirectory();
 		std::vector<MusicFile> GetFilesList(std::string path);
 		std::vector<MusicFile>* getFiles();
 	};
