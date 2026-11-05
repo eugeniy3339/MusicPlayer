@@ -60,8 +60,8 @@ namespace MusicPlayer {
 			return filesList;
 		}
 
-		for (const auto& entry : std::filesystem::directory_iterator(path)) {
-			if (entry.is_regular_file()) {
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
+			if (entry.is_regular_file() && SupportsExtension(entry.path().extension().string())) {
 				MusicFile file(entry.path().string());
 				filesList.push_back(file);
 			}
@@ -82,6 +82,16 @@ namespace MusicPlayer {
 
 	std::string* FilesContainer::GetPathToMusicDirectory() {
 		return &pathToMusicDirectory;
+	}
+
+	bool FilesContainer::SupportsExtension(const std::string extension) {
+		for (auto ext : supportedExtensions)
+		{
+			if (ext == extension)
+				return true;
+		}
+
+		return false;
 	}
 #pragma endregion
 }

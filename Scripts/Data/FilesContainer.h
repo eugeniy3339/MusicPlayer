@@ -19,9 +19,10 @@ namespace MusicPlayer {
 	class FilesContainer {
 	private:
 		const std::string defaultPathToMusicDirectory = "C:\\Users\\eugen\\Music\\TestMusic";
-		std::string pathToMusicDirectory;
-
+		const std::string supportedExtensions[3]{ ".wav", ".mp3", ".flac" };
 		static FilesContainer* instance;
+
+		std::string pathToMusicDirectory;
 		std::vector<MusicFile> files;
 
 		Saver& saver;
@@ -35,6 +36,8 @@ namespace MusicPlayer {
 		std::string* GetPathToMusicDirectory();
 		std::vector<MusicFile> GetFilesList(std::string path);
 		std::vector<MusicFile>* getFiles();
+
+		bool SupportsExtension(const std::string extension);
 
 		eventpp::CallbackList<void()> onFilesListRefreshed;
 	};
