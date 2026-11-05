@@ -137,7 +137,8 @@ namespace MusicPlayer {
 		ImGui::SameLine();
 		if (ImGui::Button("Refresh"))
 			files.RefreshList();
-		ImGui::TextDisabled("%s", files.GetPathToMusicDirectory()->c_str());
+		const std::string musicDirectory = PathToUtf8(std::filesystem::path(*files.GetPathToMusicDirectory()));
+		ImGui::TextDisabled("%s", musicDirectory.c_str());
 		ImGui::Separator();
 
 		const float footerHeight = 136.0f;

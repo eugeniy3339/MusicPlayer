@@ -5,7 +5,9 @@
 #include "../../external/imgui/backends/imgui_impl_win32.h"
 #include <windows.h>
 #include <d3d11.h>
+#include <filesystem>
 #include <iterator>
+#include <string>
 #include <tchar.h>
 
 // The backend header intentionally omits this declaration to avoid including
@@ -17,6 +19,49 @@ namespace {
 	ID3D11DeviceContext* deviceContext = nullptr;
 	IDXGISwapChain* swapChain = nullptr;
 	ID3D11RenderTargetView* renderTargetView = nullptr;
+
+	void LoadMultilingualFonts() {
+		wchar_t windowsDirectory[MAX_PATH]{};
+		const UINT length = GetWindowsDirectoryW(windowsDirectory, MAX_PATH);
+		if (length == 0 || length >= MAX_PATH) {
+			ImGui::GetIO().Fonts->AddFontDefaultVector();
+			return;
+		}
+
+		const std::filesystem::path fontDirectory = std::filesystem::path(windowsDirectory) / L"Fonts";
+		const std::filesystem::path baseFontPath = fontDirectory / L"segoeui.ttf";
+		ImFont* baseFont = nullptr;
+		if (std::filesystem::exists(baseFontPath)) {
+			const std::string baseFontFile = baseFontPath.string();
+			baseFont = ImGui::GetIO().Fonts->AddFontFromFileTTF(baseFontFile.c_str(), 18.0f);
+		}
+		if (baseFont == nullptr)
+			baseFont = ImGui::GetIO().Fonts->AddFontDefaultVector();
+		ImGui::GetIO().FontDefault = baseFont;
+
+		const std::filesystem::path supplementalFonts[] = {
+			fontDirectory / L"arial.ttf",     // Cyrillic and Arabic
+			fontDirectory / L"YuGothR.ttc",  // Japanese
+			fontDirectory / L"msgothic.ttc", // Japanese fallback
+			fontDirectory / L"msyh.ttc",     // Simplified Chinese
+			fontDirectory / L"msjh.ttc"      // Traditional Chinese
+		};
+		bool japaneseFontAdded = false;
+		for (const std::filesystem::path& fontPath : supplementalFonts) {
+			const std::wstring filename = fontPath.filename().wstring();
+			const bool isJapaneseFont = filename == L"YuGothR.ttc" || filename == L"msgothic.ttc";
+			if (isJapaneseFont && japaneseFontAdded)
+				continue;
+			if (!std::filesystem::exists(fontPath))
+				continue;
+
+			ImFontConfig config;
+			config.MergeMode = true;
+			const std::string fontFile = fontPath.string();
+			if (ImGui::GetIO().Fonts->AddFontFromFileTTF(fontFile.c_str(), 18.0f, &config) != nullptr && isJapaneseFont)
+				japaneseFontAdded = true;
+		}
+	}
 
 	void CreateRenderTarget() {
 		ID3D11Texture2D* backBuffer = nullptr;
@@ -109,6 +154,7 @@ namespace MusicPlayer {
 		UpdateWindow(window);
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
+		LoadMultilingualFonts();
 		ImGui::StyleColorsDark();
 		ImGuiStyle& style = ImGui::GetStyle();
 		ImVec4* colors = style.Colors;
