@@ -49,8 +49,9 @@ namespace MusicPlayer {
 		return instance;
 	}
 
-	void FilesContainer::ReloadList() {
+	void FilesContainer::RefreshList() {
 		files = GetFilesList(pathToMusicDirectory);
+		onFilesListRefreshed();
 	}
 
 	std::vector<MusicFile> FilesContainer::GetFilesList(std::string path) {
@@ -76,7 +77,7 @@ namespace MusicPlayer {
 	void FilesContainer::SetPathToMusicDirectory(std::string path) {
 		pathToMusicDirectory = path;
 		saver.SavePath(&pathToMusicDirectory);
-		ReloadList();
+		RefreshList();
 	}
 
 	std::string* FilesContainer::GetPathToMusicDirectory() {

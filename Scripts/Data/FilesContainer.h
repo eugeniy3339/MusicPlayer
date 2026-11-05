@@ -3,6 +3,7 @@
 #include <vector>
 #include <filesystem>
 #include "Saver.h"
+#include "../../external/eventpp/callbacklist.h"
 
 namespace MusicPlayer {
 	class MusicFile {
@@ -29,10 +30,12 @@ namespace MusicPlayer {
 		~FilesContainer();
 
 		static FilesContainer* getInstance();
-		void ReloadList();
+		void RefreshList();
 		void SetPathToMusicDirectory(std::string path);
 		std::string* GetPathToMusicDirectory();
 		std::vector<MusicFile> GetFilesList(std::string path);
 		std::vector<MusicFile>* getFiles();
+
+		eventpp::CallbackList<void()> onFilesListRefreshed;
 	};
 }

@@ -68,7 +68,7 @@ namespace MusicPlayer
 		if (ma_sound_start(&sound) == MA_SUCCESS)
 		{
 			isPlaying = true;
-			std::cout << "Playing!!!!!\n";
+			onMusicStarted(file);
 		}
 		else
 			std::cerr << "Failed to start audio file: " << *file.getPath() << '\n';
@@ -76,7 +76,10 @@ namespace MusicPlayer
 
 	void Player::Pause() {
 		if (soundInitialized && isPlaying && ma_sound_stop(&sound) == MA_SUCCESS)
+		{
 			isPlaying = false;
+			onMusicPaused();
+		}
 	}
 
 	void Player::PlayNext() {
@@ -109,6 +112,9 @@ namespace MusicPlayer
 
 	void Player::Resume() {
 		if (soundInitialized && !isPlaying && ma_sound_start(&sound) == MA_SUCCESS)
+		{
 			isPlaying = true;
+			onMusicResumed();
+		}
 	}
 }

@@ -15,6 +15,9 @@ namespace MusicPlayer {
 		bool engineInitialized;
 		bool soundInitialized;
 	public:
+		explicit Player(FilesContainer& filesContainer);
+		~Player();
+
 		static Player* getInstance();
 
 		MusicFile* getCurFile();
@@ -26,8 +29,9 @@ namespace MusicPlayer {
 		void Pause();
 		void Resume();
 
-		explicit Player(FilesContainer& filesContainer);
-		~Player();
+		eventpp::CallbackList<void(MusicFile)> onMusicStarted;
+		eventpp::CallbackList<void()> onMusicPaused;
+		eventpp::CallbackList<void()> onMusicResumed;
 
 	private:
 		void PlayAdjacent(int offset);
