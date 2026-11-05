@@ -129,6 +129,9 @@ namespace MusicPlayer {
 			StartFolderPicker();
 		if (folderPickerRunning)
 			ImGui::EndDisabled();
+		ImGui::SameLine();
+		if (ImGui::Button("Refresh"))
+			files.RefreshList();
 		ImGui::TextDisabled("%s", files.GetPathToMusicDirectory()->c_str());
 		ImGui::Separator();
 
