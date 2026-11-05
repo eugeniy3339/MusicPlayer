@@ -7,7 +7,7 @@
 int main() {
 	MusicPlayer::Saver saver{};
 	MusicPlayer::FilesContainer data(saver);
-	MusicPlayer::Player player(data);
+	MusicPlayer::Player player(data, saver);
 	MusicPlayer::Visuals visuals(player, data);
 	return 0;
 }

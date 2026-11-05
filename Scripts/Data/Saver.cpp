@@ -60,9 +60,9 @@ namespace MusicPlayer {
 	}
 
 	float Saver::GetVolume() {
-		if (curJson.contains("Volume") || !curJson["Volume"].is_boolean())
-			return false;
-		return curJson["Volume"].get<bool>();
+		if (!curJson.contains("Volume") || !curJson["Volume"].is_number())
+			return 1.0f;
+		return curJson["Volume"].get<float>();
 	}
 	void Saver::SaveVolume(float& volume) {
 		curJson["Volume"] = volume;

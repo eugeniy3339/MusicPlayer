@@ -17,7 +17,7 @@ namespace MusicPlayer {
 		bool engineInitialized;
 		bool soundInitialized;
 
-		float* volume;
+		float volume;
 	public:
 		explicit Player(FilesContainer& filesContainer, Saver& saver);
 		~Player();
@@ -33,8 +33,8 @@ namespace MusicPlayer {
 		void Pause();
 		void Resume();
 
-		const float& getVolume();
-		void setVolume(float& volume);
+		const float& getVolume() const;
+		void setVolume(float volume);
 
 		eventpp::CallbackList<void(MusicFile)> onMusicStarted;
 		eventpp::CallbackList<void()> onMusicPaused;

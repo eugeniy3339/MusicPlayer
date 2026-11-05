@@ -1,6 +1,7 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include "Player.h"
 #include "../../external/miniaudio.h"
+#include <algorithm>
 #include <iostream>
 
 namespace MusicPlayer
@@ -16,11 +17,13 @@ namespace MusicPlayer
 		instance = this;
 		isPlaying = false;
 		curFile = nullptr;
-		*volume = saver.GetVolume();
+		setVolume(saver.GetVolume());
 		engineInitialized = ma_engine_init(nullptr, &engine) == MA_SUCCESS;
 		soundInitialized = false;
 		if (!engineInitialized)
 			std::cerr << "Failed to initialize miniaudio engine.\n";
+		else if (ma_engine_set_volume(&engine, volume) != MA_SUCCESS)
+			std::cerr << "Failed to set miniaudio engine volume.\n";
 	}
 	Player::~Player() {
 		if (soundInitialized)
@@ -118,13 +121,15 @@ namespace MusicPlayer
 		}
 	}
 
-	const float& Player::getVolume() {
-		return *volume;
+	const float& Player::getVolume() const {
+		return volume;
 	}
 
-	void Player::setVolume(float& volume) {
-		*this->volume = volume;
-		saver.SaveVolume(volume);
-		onVolumeChanged(volume);
+	void Player::setVolume(float volume) {
+		this->volume = std::clamp(volume, 0.0f, 1.0f);
+		if (engineInitialized && ma_engine_set_volume(&engine, this->volume) != MA_SUCCESS)
+			std::cerr << "Failed to set miniaudio engine volume.\n";
+		saver.SaveVolume(this->volume);
+		onVolumeChanged(this->volume);
 	}
 }

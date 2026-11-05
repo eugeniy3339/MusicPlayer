@@ -83,7 +83,7 @@ namespace MusicPlayer {
 
 	void FilesContainer::SetPathToMusicDirectory(std::string path) {
 		pathToMusicDirectory = path;
-		saver.SavePath(&pathToMusicDirectory);
+		saver.SavePath(pathToMusicDirectory);
 		RefreshList();
 	}
 

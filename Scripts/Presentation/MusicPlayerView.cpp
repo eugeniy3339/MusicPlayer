@@ -141,7 +141,7 @@ namespace MusicPlayer {
 		ImGui::TextDisabled("%s", musicDirectory.c_str());
 		ImGui::Separator();
 
-		const float footerHeight = 136.0f;
+		const float footerHeight = 168.0f;
 		if (ImGui::BeginChild("Library", ImVec2(0.0f, -footerHeight), ImGuiChildFlags_Borders)) {
 			std::vector<MusicFile>* tracks = files.getFiles();
 			MusicFile* current = GetCurrentTrack(player, files);
@@ -191,6 +191,11 @@ namespace MusicPlayer {
 		ImGui::SameLine();
 		if (ImGui::Button("Next", ImVec2(buttonWidth, 30.0f)))
 			player.PlayNext();
+
+		float volumePercent = player.getVolume() * 100.0f;
+		ImGui::SetNextItemWidth(-1.0f);
+		if (ImGui::SliderFloat("Volume", &volumePercent, 0.0f, 100.0f, "%.0f%%"))
+			player.setVolume(volumePercent / 100.0f);
 
 		ImGui::End();
 	}
