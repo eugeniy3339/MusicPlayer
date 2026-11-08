@@ -105,8 +105,6 @@ namespace MusicPlayer {
 	}
 
 	void MusicPlayerView::Draw() {
-		player.Update();
-
 		std::wstring selectedPath;
 		{
 			std::lock_guard<std::mutex> lock(folderPickerState->mutex);

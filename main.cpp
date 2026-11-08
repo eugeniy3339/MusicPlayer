@@ -9,5 +9,10 @@ int main() {
 	MusicPlayer::FilesContainer data(saver);
 	MusicPlayer::Player player(data, saver);
 	MusicPlayer::Visuals visuals(player, data);
+	while (true) {
+		player.Update();
+		if (!visuals.Update())
+			break;
+	}
 	return 0;
 }

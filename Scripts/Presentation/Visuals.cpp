@@ -19,6 +19,7 @@ namespace {
 	ID3D11DeviceContext* deviceContext = nullptr;
 	IDXGISwapChain* swapChain = nullptr;
 	ID3D11RenderTargetView* renderTargetView = nullptr;
+	HWND window = nullptr;
 
 	void LoadMultilingualFonts() {
 		wchar_t windowsDirectory[MAX_PATH]{};
@@ -139,13 +140,14 @@ namespace MusicPlayer {
 		WNDCLASSEXW windowClass{ sizeof(windowClass), CS_CLASSDC, WindowProc, 0, 0,
 			instance, nullptr, nullptr, nullptr, nullptr, L"MusicPlayerWindow", nullptr };
 		RegisterClassExW(&windowClass);
-		HWND window = CreateWindowW(windowClass.lpszClassName, L"Music Player",
+		window = CreateWindowW(windowClass.lpszClassName, L"Music Player",
 			WS_OVERLAPPEDWINDOW, 100, 100, 1040, 760, nullptr, nullptr, instance, nullptr);
 		if (!window)
 			return;
 		if (!CreateDeviceD3D(window)) {
 			CleanupDeviceD3D();
 			DestroyWindow(window);
+			window = nullptr;
 			UnregisterClassW(windowClass.lpszClassName, instance);
 			return;
 		}
@@ -174,35 +176,46 @@ namespace MusicPlayer {
 		ImGui_ImplWin32_Init(window);
 		ImGui_ImplDX11_Init(device, deviceContext);
 
-		bool running = true;
-		while (running) {
-			MSG message;
-			while (PeekMessageW(&message, nullptr, 0U, 0U, PM_REMOVE)) {
-				TranslateMessage(&message);
-				DispatchMessageW(&message);
-				if (message.message == WM_QUIT)
-					running = false;
-			}
-			if (!running)
-				break;
+		running = true;
+		initialized = true;
+	}
 
-			ImGui_ImplDX11_NewFrame();
-			ImGui_ImplWin32_NewFrame();
-			ImGui::NewFrame();
-			view.Draw();
-			ImGui::Render();
-			const float clearColor[4] = { 0.055f, 0.065f, 0.085f, 1.0f };
-			deviceContext->OMSetRenderTargets(1, &renderTargetView, nullptr);
-			deviceContext->ClearRenderTargetView(renderTargetView, clearColor);
-			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-			swapChain->Present(1, 0);
-		}
-
+	Visuals::~Visuals() {
+		if (!initialized)
+			return;
 		ImGui_ImplDX11_Shutdown();
 		ImGui_ImplWin32_Shutdown();
 		ImGui::DestroyContext();
 		CleanupDeviceD3D();
 		DestroyWindow(window);
-		UnregisterClassW(windowClass.lpszClassName, instance);
+		UnregisterClassW(L"MusicPlayerWindow", GetModuleHandleW(nullptr));
+		window = nullptr;
+	}
+
+	bool Visuals::Update() {
+		if (!running || !initialized)
+			return false;
+
+		MSG message;
+		while (PeekMessageW(&message, nullptr, 0U, 0U, PM_REMOVE)) {
+			TranslateMessage(&message);
+			DispatchMessageW(&message);
+			if (message.message == WM_QUIT)
+				running = false;
+		}
+		if (!running)
+			return false;
+
+		ImGui_ImplDX11_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
+		view.Draw();
+		ImGui::Render();
+		const float clearColor[4] = { 0.055f, 0.065f, 0.085f, 1.0f };
+		deviceContext->OMSetRenderTargets(1, &renderTargetView, nullptr);
+		deviceContext->ClearRenderTargetView(renderTargetView, clearColor);
+		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+		swapChain->Present(1, 0);
+		return true;
 	}
 }
