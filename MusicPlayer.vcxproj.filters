@@ -45,7 +45,10 @@
     <ClCompile Include="Scripts\Data\Saver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Scripts\CommandsListener.cpp">
+    <ClCompile Include="Scripts\Commands\CommandsListener.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Scripts\Commands\Commands.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -86,7 +89,10 @@
     <ClInclude Include="Scripts\Data\Saver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Scripts\CommandsListener.h">
+    <ClInclude Include="Scripts\Commands\CommandsListener.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Scripts\Commands\Commands.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
