@@ -16,5 +16,15 @@ namespace MusicPlayer {
 		void Start(std::string attributes) override;
 	};
 
+	class NextCommand : public Command {
+	public:
+		void Start(std::string attributes) override;
+	};
+
+	class PreviousCommand : public Command {
+	public:
+		void Start(std::string attributes) override;
+	};
+
 #pragma endregion
 }

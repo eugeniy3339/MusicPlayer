@@ -7,6 +7,8 @@
 namespace MusicPlayer {
 	CommandsListener::CommandsListener() {
 		RegisterCommand("play", std::make_unique<PlayCommand>());
+		RegisterCommand("playNext", std::make_unique<NextCommand>());
+		RegisterCommand("playPrevious", std::make_unique<PreviousCommand>());
 	}
 
 	void CommandsListener::RegisterCommand(std::string name, std::unique_ptr<Command> command) {
