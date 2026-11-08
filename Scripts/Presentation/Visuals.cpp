@@ -1,221 +1,248 @@
 #include "Visuals.h"
 
-#include "../../external/imgui/imgui.h"
-#include "../../external/imgui/backends/imgui_impl_dx11.h"
-#include "../../external/imgui/backends/imgui_impl_win32.h"
+#include <conio.h>
 #include <windows.h>
-#include <d3d11.h>
+
 #include <filesystem>
-#include <iterator>
-#include <string>
-#include <tchar.h>
-
-// The backend header intentionally omits this declaration to avoid including
-// Windows headers in every translation unit that uses it.
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
-
-namespace {
-	ID3D11Device* device = nullptr;
-	ID3D11DeviceContext* deviceContext = nullptr;
-	IDXGISwapChain* swapChain = nullptr;
-	ID3D11RenderTargetView* renderTargetView = nullptr;
-	HWND window = nullptr;
-
-	void LoadMultilingualFonts() {
-		wchar_t windowsDirectory[MAX_PATH]{};
-		const UINT length = GetWindowsDirectoryW(windowsDirectory, MAX_PATH);
-		if (length == 0 || length >= MAX_PATH) {
-			ImGui::GetIO().Fonts->AddFontDefaultVector();
-			return;
-		}
-
-		const std::filesystem::path fontDirectory = std::filesystem::path(windowsDirectory) / L"Fonts";
-		const std::filesystem::path baseFontPath = fontDirectory / L"segoeui.ttf";
-		ImFont* baseFont = nullptr;
-		if (std::filesystem::exists(baseFontPath)) {
-			const std::string baseFontFile = baseFontPath.string();
-			baseFont = ImGui::GetIO().Fonts->AddFontFromFileTTF(baseFontFile.c_str(), 18.0f);
-		}
-		if (baseFont == nullptr)
-			baseFont = ImGui::GetIO().Fonts->AddFontDefaultVector();
-		ImGui::GetIO().FontDefault = baseFont;
-
-		const std::filesystem::path supplementalFonts[] = {
-			fontDirectory / L"arial.ttf",     // Cyrillic and Arabic
-			fontDirectory / L"YuGothR.ttc",  // Japanese
-			fontDirectory / L"msgothic.ttc", // Japanese fallback
-			fontDirectory / L"msyh.ttc",     // Simplified Chinese
-			fontDirectory / L"msjh.ttc"      // Traditional Chinese
-		};
-		bool japaneseFontAdded = false;
-		for (const std::filesystem::path& fontPath : supplementalFonts) {
-			const std::wstring filename = fontPath.filename().wstring();
-			const bool isJapaneseFont = filename == L"YuGothR.ttc" || filename == L"msgothic.ttc";
-			if (isJapaneseFont && japaneseFontAdded)
-				continue;
-			if (!std::filesystem::exists(fontPath))
-				continue;
-
-			ImFontConfig config;
-			config.MergeMode = true;
-			const std::string fontFile = fontPath.string();
-			if (ImGui::GetIO().Fonts->AddFontFromFileTTF(fontFile.c_str(), 18.0f, &config) != nullptr && isJapaneseFont)
-				japaneseFontAdded = true;
-		}
-	}
-
-	void CreateRenderTarget() {
-		ID3D11Texture2D* backBuffer = nullptr;
-		if (SUCCEEDED(swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer)))) {
-			device->CreateRenderTargetView(backBuffer, nullptr, &renderTargetView);
-			backBuffer->Release();
-		}
-	}
-
-	void CleanupRenderTarget() {
-		if (renderTargetView) {
-			renderTargetView->Release();
-			renderTargetView = nullptr;
-		}
-	}
-
-	bool CreateDeviceD3D(HWND window) {
-		DXGI_SWAP_CHAIN_DESC desc{};
-		desc.BufferCount = 2;
-		desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		desc.BufferDesc.RefreshRate.Numerator = 60;
-		desc.BufferDesc.RefreshRate.Denominator = 1;
-		desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-		desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		desc.OutputWindow = window;
-		desc.SampleDesc.Count = 1;
-		desc.Windowed = TRUE;
-		desc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-
-		const D3D_FEATURE_LEVEL levels[] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0 };
-		D3D_FEATURE_LEVEL selectedLevel{};
-		const HRESULT result = D3D11CreateDeviceAndSwapChain(
-			nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, levels,
-			static_cast<UINT>(std::size(levels)), D3D11_SDK_VERSION,
-			&desc, &swapChain, &device, &selectedLevel, &deviceContext);
-		if (FAILED(result))
-			return false;
-		CreateRenderTarget();
-		return renderTargetView != nullptr;
-	}
-
-	void CleanupDeviceD3D() {
-		CleanupRenderTarget();
-		if (swapChain) { swapChain->Release(); swapChain = nullptr; }
-		if (deviceContext) { deviceContext->Release(); deviceContext = nullptr; }
-		if (device) { device->Release(); device = nullptr; }
-	}
-
-	LRESULT WINAPI WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
-		if (ImGui_ImplWin32_WndProcHandler(window, message, wParam, lParam))
-			return 1;
-		switch (message) {
-		case WM_SIZE:
-			if (device && wParam != SIZE_MINIMIZED) {
-				CleanupRenderTarget();
-				swapChain->ResizeBuffers(0, LOWORD(lParam), HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
-				CreateRenderTarget();
-			}
-			return 0;
-		case WM_SYSCOMMAND:
-			if ((wParam & 0xfff0) == SC_KEYMENU)
-				return 0;
-			break;
-		case WM_DESTROY:
-			PostQuitMessage(0);
-			return 0;
-		}
-		return DefWindowProcW(window, message, wParam, lParam);
-	}
-}
+#include <utility>
+#include <vector>
 
 namespace MusicPlayer {
-	Visuals::Visuals(Player& player, FilesContainer& files) : view(player, files) {
-		const HINSTANCE instance = GetModuleHandleW(nullptr);
-		WNDCLASSEXW windowClass{ sizeof(windowClass), CS_CLASSDC, WindowProc, 0, 0,
-			instance, nullptr, nullptr, nullptr, nullptr, L"MusicPlayerWindow", nullptr };
-		RegisterClassExW(&windowClass);
-		window = CreateWindowW(windowClass.lpszClassName, L"Music Player",
-			WS_OVERLAPPEDWINDOW, 100, 100, 1040, 760, nullptr, nullptr, instance, nullptr);
-		if (!window)
-			return;
-		if (!CreateDeviceD3D(window)) {
-			CleanupDeviceD3D();
-			DestroyWindow(window);
-			window = nullptr;
-			UnregisterClassW(windowClass.lpszClassName, instance);
-			return;
+	namespace {
+		std::wstring Utf8ToWide(const std::string& value) {
+			if (value.empty())
+				return {};
+
+			const int size = MultiByteToWideChar(CP_UTF8, 0, value.data(),
+				static_cast<int>(value.size()), nullptr, 0);
+			if (size <= 0)
+				return std::wstring(value.begin(), value.end());
+
+			std::wstring result(size, L'\0');
+			MultiByteToWideChar(CP_UTF8, 0, value.data(), static_cast<int>(value.size()),
+				result.data(), size);
+			return result;
 		}
-
-		ShowWindow(window, SW_SHOWDEFAULT);
-		UpdateWindow(window);
-		IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
-		LoadMultilingualFonts();
-		ImGui::StyleColorsDark();
-		ImGuiStyle& style = ImGui::GetStyle();
-		ImVec4* colors = style.Colors;
-		colors[ImGuiCol_WindowBg] = ImVec4(0.055f, 0.065f, 0.085f, 1.0f);
-		colors[ImGuiCol_ChildBg] = ImVec4(0.075f, 0.090f, 0.115f, 1.0f);
-		colors[ImGuiCol_Header] = ImVec4(0.13f, 0.30f, 0.34f, 0.75f);
-		colors[ImGuiCol_HeaderHovered] = ImVec4(0.16f, 0.43f, 0.46f, 0.85f);
-		colors[ImGuiCol_HeaderActive] = ImVec4(0.16f, 0.50f, 0.52f, 1.0f);
-		colors[ImGuiCol_Button] = ImVec4(0.12f, 0.28f, 0.32f, 1.0f);
-		colors[ImGuiCol_ButtonHovered] = ImVec4(0.15f, 0.40f, 0.43f, 1.0f);
-		colors[ImGuiCol_ButtonActive] = ImVec4(0.18f, 0.49f, 0.51f, 1.0f);
-		colors[ImGuiCol_FrameBg] = ImVec4(0.10f, 0.12f, 0.15f, 1.0f);
-		style.WindowRounding = 10.0f;
-		style.FrameRounding = 6.0f;
-		style.ChildRounding = 8.0f;
-		style.ItemSpacing = ImVec2(10.0f, 8.0f);
-		ImGui_ImplWin32_Init(window);
-		ImGui_ImplDX11_Init(device, deviceContext);
-
-		running = true;
-		initialized = true;
 	}
 
-	Visuals::~Visuals() {
-		if (!initialized)
-			return;
-		ImGui_ImplDX11_Shutdown();
-		ImGui_ImplWin32_Shutdown();
-		ImGui::DestroyContext();
-		CleanupDeviceD3D();
-		DestroyWindow(window);
-		UnregisterClassW(L"MusicPlayerWindow", GetModuleHandleW(nullptr));
-		window = nullptr;
+	Visuals::Visuals(Player& player, FilesContainer& files) : player(player), files(files) {
+		player.onMusicStarted.append([this](MusicFile file) {
+			currentTrackPath = file.getPath()->wstring();
+			isDirty = true;
+		});
+		player.onMusicPaused.append([this]() { isDirty = true; });
+		player.onMusicResumed.append([this]() { isDirty = true; });
+		player.onVolumeChanged.append([this](float) { isDirty = true; });
+		files.onFilesListRefreshed.append([this]() { isDirty = true; });
 	}
 
 	bool Visuals::Update() {
-		if (!running || !initialized)
-			return false;
-
-		MSG message;
-		while (PeekMessageW(&message, nullptr, 0U, 0U, PM_REMOVE)) {
-			TranslateMessage(&message);
-			DispatchMessageW(&message);
-			if (message.message == WM_QUIT)
-				running = false;
+		while (_kbhit()) {
+			int key = _getch();
+			if (key == 0 || key == 0xE0) {
+				key = _getch();
+				if (!enteringPath && (key == 72 || key == 80))
+					HandleKey(key == 72 ? 'w' : 's');
+				continue;
+			}
+			HandleKey(key);
 		}
-		if (!running)
-			return false;
 
-		ImGui_ImplDX11_NewFrame();
-		ImGui_ImplWin32_NewFrame();
-		ImGui::NewFrame();
-		view.Draw();
-		ImGui::Render();
-		const float clearColor[4] = { 0.055f, 0.065f, 0.085f, 1.0f };
-		deviceContext->OMSetRenderTargets(1, &renderTargetView, nullptr);
-		deviceContext->ClearRenderTargetView(renderTargetView, clearColor);
-		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-		swapChain->Present(1, 0);
-		return true;
+		CONSOLE_SCREEN_BUFFER_INFO screenInfo{};
+		const HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+		if (console != INVALID_HANDLE_VALUE && GetConsoleScreenBufferInfo(console, &screenInfo)) {
+			const int width = screenInfo.srWindow.Right - screenInfo.srWindow.Left + 1;
+			const int height = screenInfo.srWindow.Bottom - screenInfo.srWindow.Top + 1;
+			if (width != lastConsoleWidth || height != lastConsoleHeight) {
+				lastConsoleWidth = width;
+				lastConsoleHeight = height;
+				isDirty = true;
+			}
+		}
+
+		if (isDirty) {
+			Render();
+			isDirty = false;
+		}
+		Sleep(16);
+		return isRunning;
+	}
+
+	void Visuals::HandleKey(int key) {
+		isDirty = true;
+		if (enteringPath) {
+			if (key == '\r' || key == '\n') {
+				enteringPath = false;
+				if (!pathInput.empty()) {
+					files.SetPathToMusicDirectory(pathInput);
+					selectedFile = 0;
+					statusMessage = "Music directory updated.";
+				}
+				else {
+					statusMessage = "Path change cancelled.";
+				}
+				pathInput.clear();
+			}
+			else if (key == 27) {
+				enteringPath = false;
+				pathInput.clear();
+				statusMessage = "Path change cancelled.";
+			}
+			else if (key == '\b' || key == 127) {
+				if (!pathInput.empty())
+					pathInput.pop_back();
+			}
+			else if (key >= 32 && key <= 126) {
+				pathInput.push_back(static_cast<char>(key));
+			}
+			return;
+		}
+
+		auto* fileList = files.getFiles();
+		switch (key) {
+		case 'w': case 'W':
+			if (!fileList->empty() && selectedFile > 0)
+				--selectedFile;
+			break;
+		case 's': case 'S':
+			if (!fileList->empty() && selectedFile + 1 < fileList->size())
+				++selectedFile;
+			break;
+		case '\r': case '\n':
+			PlaySelected();
+			break;
+		case ' ':
+			if (*player.getIsPlaying())
+				player.Pause();
+			else
+				player.Resume();
+			break;
+		case 'n': case 'N':
+			player.PlayNext();
+			break;
+		case 'p': case 'P':
+			player.PlayPrevious();
+			break;
+		case '+': case '=':
+			player.setVolume(player.getVolume() + 0.05f);
+			break;
+		case '-': case '_':
+			player.setVolume(player.getVolume() - 0.05f);
+			break;
+		case 'r': case 'R':
+			files.RefreshList();
+			if (fileList->empty())
+				selectedFile = 0;
+			else if (selectedFile >= fileList->size())
+				selectedFile = fileList->size() - 1;
+			statusMessage = "File list refreshed.";
+			break;
+		case 'c': case 'C':
+			enteringPath = true;
+			pathInput.clear();
+			statusMessage = "Type a directory path, then press Enter (Esc cancels).";
+			break;
+		case 'q': case 'Q':
+			isRunning = false;
+			break;
+		default:
+			break;
+		}
+	}
+
+	void Visuals::PlaySelected() {
+		auto* fileList = files.getFiles();
+		if (fileList->empty() || selectedFile >= fileList->size()) {
+			statusMessage = "No sound files are available in this directory.";
+			return;
+		}
+		player.Play((*fileList)[selectedFile]);
+	}
+
+	void Visuals::Render() {
+		const HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+		CONSOLE_SCREEN_BUFFER_INFO screenInfo{};
+		if (console == INVALID_HANDLE_VALUE || !GetConsoleScreenBufferInfo(console, &screenInfo))
+			return;
+
+		const int width = screenInfo.srWindow.Right - screenInfo.srWindow.Left + 1;
+		const int height = screenInfo.srWindow.Bottom - screenInfo.srWindow.Top + 1;
+		if (width <= 0 || height <= 0)
+			return;
+
+		auto* fileList = files.getFiles();
+		const bool isPlaying = *player.getIsPlaying();
+		const float volume = player.getVolume();
+		const int filled = static_cast<int>(volume * 20.0f + 0.5f);
+		std::vector<std::wstring> lines;
+		const auto addLine = [&lines, width](std::wstring line) {
+			if (line.size() >= static_cast<std::size_t>(width))
+				line.resize(static_cast<std::size_t>(width - 1));
+			lines.push_back(std::move(line));
+		};
+
+		addLine(L"MUSIC PLAYER");
+		addLine(L"============");
+		addLine(L"");
+		addLine(L"Sounds in: " + Utf8ToWide(*files.GetPathToMusicDirectory()));
+
+		const int listCapacity = height > 11 ? height - 11 : 1;
+		const std::size_t visibleCount = static_cast<std::size_t>(listCapacity);
+		const std::size_t firstVisible = selectedFile >= visibleCount
+			? selectedFile - visibleCount + 1
+			: 0;
+		if (fileList->empty())
+			addLine(L"  (no supported sound files found)");
+		else {
+			for (std::size_t row = 0; row < visibleCount; ++row) {
+				const std::size_t index = firstVisible + row;
+				if (index >= fileList->size())
+					break;
+				const std::wstring name = (*fileList)[index].getPath()->filename().wstring();
+				addLine((index == selectedFile ? L" > " : L"   ") + name);
+			}
+		}
+
+		while (lines.size() < static_cast<std::size_t>(4 + listCapacity))
+			addLine(L"");
+
+		addLine(L"");
+		addLine(std::wstring(isPlaying ? L"Now playing: " : L"Now paused: ") +
+			(currentTrackPath.empty() ? L"(nothing selected)" : currentTrackPath));
+
+		std::wstring volumeBar = L"Volume [";
+		for (int i = 0; i < 20; ++i)
+			volumeBar += i < filled ? L'#' : L'-';
+		volumeBar += L"] " + std::to_wstring(static_cast<int>(volume * 100.0f + 0.5f)) + L"%";
+		addLine(std::move(volumeBar));
+
+		if (enteringPath)
+			addLine(L"New music directory: " + Utf8ToWide(pathInput) + L"_");
+		else if (!statusMessage.empty())
+			addLine(Utf8ToWide(statusMessage));
+		else
+			addLine(L"");
+
+		addLine(L"Controls: W/S select  Enter play  Space pause/resume  N next  P previous");
+		addLine(L"          +/- volume  C change directory  R refresh files  Q quit");
+
+		const std::size_t cellCount = static_cast<std::size_t>(width) * height;
+		std::vector<CHAR_INFO> buffer(cellCount);
+		const std::wstring emptyLine;
+		for (std::size_t row = 0; row < static_cast<std::size_t>(height); ++row) {
+			const std::wstring& line = row < lines.size() ? lines[row] : emptyLine;
+			for (int column = 0; column < width; ++column) {
+				CHAR_INFO& cell = buffer[row * width + column];
+				cell.Char.UnicodeChar = static_cast<std::size_t>(column) < line.size()
+					? line[column]
+					: L' ';
+				cell.Attributes = screenInfo.wAttributes;
+			}
+		}
+
+		const COORD bufferSize{ static_cast<SHORT>(width), static_cast<SHORT>(height) };
+		const COORD bufferOrigin{ 0, 0 };
+		SMALL_RECT target = screenInfo.srWindow;
+		WriteConsoleOutputW(console, buffer.data(), bufferSize, bufferOrigin, &target);
 	}
 }

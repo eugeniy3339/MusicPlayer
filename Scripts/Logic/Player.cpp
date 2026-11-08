@@ -17,9 +17,9 @@ namespace MusicPlayer
 		instance = this;
 		isPlaying = false;
 		curFile = nullptr;
+		soundInitialized = false;
 		setVolume(saver.GetVolume());
 		engineInitialized = ma_engine_init(nullptr, &engine) == MA_SUCCESS;
-		soundInitialized = false;
 		if (!engineInitialized)
 			std::cerr << "Failed to initialize miniaudio engine.\n";
 		else if (ma_engine_set_volume(&engine, volume) != MA_SUCCESS)

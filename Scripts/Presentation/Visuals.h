@@ -1,16 +1,32 @@
 #pragma once
 
-#include "MusicPlayerView.h"
+#include "../Data/FilesContainer.h"
+#include "../Logic/Player.h"
+
+#include <cstddef>
+#include <string>
 
 namespace MusicPlayer {
 	class Visuals {
 	private:
-		MusicPlayerView view;
-		bool running = false;
-		bool initialized = false;
+		Player& player;
+		FilesContainer& files;
+		std::size_t selectedFile = 0;
+		bool isRunning = true;
+		bool enteringPath = false;
+		std::string pathInput;
+		std::wstring currentTrackPath;
+		std::string statusMessage;
+		bool isDirty = true;
+		int lastConsoleWidth = 0;
+		int lastConsoleHeight = 0;
+
+		void HandleKey(int key);
+		void Render();
+		void PlaySelected();
+
 	public:
 		Visuals(Player& player, FilesContainer& files);
-		~Visuals();
 		bool Update();
 	};
 }
