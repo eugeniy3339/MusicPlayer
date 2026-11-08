@@ -89,6 +89,11 @@ namespace MusicPlayer
 		PlayAdjacent(1);
 	}
 
+	void Player::Update() {
+		if (soundInitialized && isPlaying && ma_sound_at_end(&sound))
+			PlayNext();
+	}
+
 	void Player::PlayPrevious() {
 		PlayAdjacent(-1);
 	}

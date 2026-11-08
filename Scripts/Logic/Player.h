@@ -28,6 +28,7 @@ namespace MusicPlayer {
 		bool* getIsPlaying();
 
 		void Play(MusicFile& file);
+		void Update();
 		void PlayNext();
 		void PlayPrevious();
 		void Pause();
