@@ -24,29 +24,29 @@
     <ClCompile Include="Scripts\Logic\Player.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Scripts\Presentation\MusicPlayerView.cpp">
-      <Filter>Presentation</Filter>
-    </ClCompile>
-    <ClCompile Include="Scripts\Presentation\Visuals.cpp">
-      <Filter>Presentation</Filter>
-    </ClCompile>
     <ClCompile Include="external\imgui\imgui.cpp">
-      <Filter>External\Dear ImGui</Filter>
+      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="external\imgui\imgui_draw.cpp">
-      <Filter>External\Dear ImGui</Filter>
+      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="external\imgui\imgui_tables.cpp">
-      <Filter>External\Dear ImGui</Filter>
+      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="external\imgui\imgui_widgets.cpp">
-      <Filter>External\Dear ImGui</Filter>
+      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="external\imgui\backends\imgui_impl_win32.cpp">
-      <Filter>External\Dear ImGui</Filter>
+      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="external\imgui\backends\imgui_impl_dx11.cpp">
-      <Filter>External\Dear ImGui</Filter>
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Scripts\Data\Saver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Scripts\CommandsListener.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -56,13 +56,37 @@
     <ClInclude Include="Scripts\Logic\Player.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Scripts\Presentation\MusicPlayerView.h">
-      <Filter>Presentation</Filter>
-    </ClInclude>
-    <ClInclude Include="Scripts\Presentation\Visuals.h">
-      <Filter>Presentation</Filter>
-    </ClInclude>
     <ClInclude Include="external\miniaudio.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="external\imgui\imconfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="external\imgui\imgui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="external\imgui\imgui_internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="external\imgui\imstb_rectpack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="external\imgui\imstb_textedit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="external\imgui\imstb_truetype.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="external\imgui\backends\imgui_impl_win32.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="external\imgui\backends\imgui_impl_dx11.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Scripts\Data\Saver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Scripts\CommandsListener.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

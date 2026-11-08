@@ -126,6 +126,20 @@ namespace MusicPlayer
 		}
 	}
 
+	void Player::OnCommandEntered(CommandType commandType) {
+		switch (commandType) {
+		case CommandType::Play:
+			PlayAdjacent(0);
+			break;
+		case CommandType::Next:
+			PlayNext();
+			break;
+		case CommandType::Previous:
+			PlayPrevious();
+			break;
+		}
+	}
+
 	const float& Player::getVolume() const {
 		return volume;
 	}

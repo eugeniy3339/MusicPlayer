@@ -2,6 +2,7 @@
 #include "../Data/FilesContainer.h"
 #include "../Data/Saver.h"
 #include "../../external/miniaudio.h"
+#include "../CommandsListener.h"
 
 namespace MusicPlayer {
 	class Player {
@@ -33,6 +34,8 @@ namespace MusicPlayer {
 		void PlayPrevious();
 		void Pause();
 		void Resume();
+
+		void OnCommandEntered(CommandType commandType);
 
 		const float& getVolume() const;
 		void setVolume(float volume);
