@@ -1,35 +1,39 @@
 #include "Visuals.h"
 
 #include <conio.h>
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
 #include <windows.h>
 
-#include <algorithm>
-#include <iomanip>
-#include <iostream>
+#include <filesystem>
+#include <utility>
+#include <vector>
 
 namespace MusicPlayer {
 	namespace {
-		std::string PathToUtf8(const std::filesystem::path& path) {
-			const auto utf8Path = path.u8string();
-			return std::string(utf8Path.begin(), utf8Path.end());
+		std::wstring Utf8ToWide(const std::string& value) {
+			if (value.empty())
+				return {};
+
+			const int size = MultiByteToWideChar(CP_UTF8, 0, value.data(),
+				static_cast<int>(value.size()), nullptr, 0);
+			if (size <= 0)
+				return std::wstring(value.begin(), value.end());
+
+			std::wstring result(size, L'\0');
+			MultiByteToWideChar(CP_UTF8, 0, value.data(), static_cast<int>(value.size()),
+				result.data(), size);
+			return result;
 		}
 	}
 
 	Visuals::Visuals(Player& player, FilesContainer& files) : player(player), files(files) {
-		SetConsoleOutputCP(CP_UTF8);
-		SetConsoleCP(CP_UTF8);
-
-		const HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
-		DWORD consoleMode = 0;
-		if (console != INVALID_HANDLE_VALUE && GetConsoleMode(console, &consoleMode))
-			SetConsoleMode(console, consoleMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-
 		player.onMusicStarted.append([this](MusicFile file) {
-			currentTrackPath = PathToUtf8(*file.getPath());
+			currentTrackPath = file.getPath()->wstring();
+			isDirty = true;
 		});
+		player.onMusicPaused.append([this]() { isDirty = true; });
+		player.onMusicResumed.append([this]() { isDirty = true; });
+		player.onVolumeChanged.append([this](float) { isDirty = true; });
+		files.onFilesListRefreshed.append([this]() { isDirty = true; });
 	}
 
 	bool Visuals::Update() {
@@ -44,16 +48,28 @@ namespace MusicPlayer {
 			HandleKey(key);
 		}
 
-		const auto now = std::chrono::steady_clock::now();
-		if (lastRender.time_since_epoch().count() == 0 || now - lastRender >= std::chrono::milliseconds(200)) {
+		CONSOLE_SCREEN_BUFFER_INFO screenInfo{};
+		const HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+		if (console != INVALID_HANDLE_VALUE && GetConsoleScreenBufferInfo(console, &screenInfo)) {
+			const int width = screenInfo.srWindow.Right - screenInfo.srWindow.Left + 1;
+			const int height = screenInfo.srWindow.Bottom - screenInfo.srWindow.Top + 1;
+			if (width != lastConsoleWidth || height != lastConsoleHeight) {
+				lastConsoleWidth = width;
+				lastConsoleHeight = height;
+				isDirty = true;
+			}
+		}
+
+		if (isDirty) {
 			Render();
-			lastRender = now;
+			isDirty = false;
 		}
 		Sleep(16);
 		return isRunning;
 	}
 
 	void Visuals::HandleKey(int key) {
+		isDirty = true;
 		if (enteringPath) {
 			if (key == '\r' || key == '\n') {
 				enteringPath = false;
@@ -144,44 +160,89 @@ namespace MusicPlayer {
 	}
 
 	void Visuals::Render() {
+		const HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+		CONSOLE_SCREEN_BUFFER_INFO screenInfo{};
+		if (console == INVALID_HANDLE_VALUE || !GetConsoleScreenBufferInfo(console, &screenInfo))
+			return;
+
+		const int width = screenInfo.srWindow.Right - screenInfo.srWindow.Left + 1;
+		const int height = screenInfo.srWindow.Bottom - screenInfo.srWindow.Top + 1;
+		if (width <= 0 || height <= 0)
+			return;
+
 		auto* fileList = files.getFiles();
 		const bool isPlaying = *player.getIsPlaying();
 		const float volume = player.getVolume();
 		const int filled = static_cast<int>(volume * 20.0f + 0.5f);
+		std::vector<std::wstring> lines;
+		const auto addLine = [&lines, width](std::wstring line) {
+			if (line.size() >= static_cast<std::size_t>(width))
+				line.resize(static_cast<std::size_t>(width - 1));
+			lines.push_back(std::move(line));
+		};
 
-		std::cout << "\x1b[2J\x1b[H";
-		std::cout << "MUSIC PLAYER\n"
-			<< "============\n\n"
-			<< "Sounds in: " << *files.GetPathToMusicDirectory() << "\n";
+		addLine(L"MUSIC PLAYER");
+		addLine(L"============");
+		addLine(L"");
+		addLine(L"Sounds in: " + Utf8ToWide(*files.GetPathToMusicDirectory()));
 
-		if (fileList->empty()) {
-			std::cout << "  (no supported sound files found)\n";
-		}
+		const int listCapacity = height > 11 ? height - 11 : 1;
+		const std::size_t visibleCount = static_cast<std::size_t>(listCapacity);
+		const std::size_t firstVisible = selectedFile >= visibleCount
+			? selectedFile - visibleCount + 1
+			: 0;
+		if (fileList->empty())
+			addLine(L"  (no supported sound files found)");
 		else {
-			for (std::size_t i = 0; i < fileList->size(); ++i) {
-				const std::string name = PathToUtf8((*fileList)[i].getPath()->filename());
-				std::cout << (i == selectedFile ? " > " : "   ") << name << '\n';
+			for (std::size_t row = 0; row < visibleCount; ++row) {
+				const std::size_t index = firstVisible + row;
+				if (index >= fileList->size())
+					break;
+				const std::wstring name = (*fileList)[index].getPath()->filename().wstring();
+				addLine((index == selectedFile ? L" > " : L"   ") + name);
 			}
 		}
 
-		std::cout << "\nNow " << (isPlaying ? "playing: " : "paused: ");
-		if (currentTrackPath.empty())
-			std::cout << "(nothing selected)\n";
-		else
-			std::cout << currentTrackPath << '\n';
+		while (lines.size() < static_cast<std::size_t>(4 + listCapacity))
+			addLine(L"");
 
-		std::cout << "\nVolume [";
+		addLine(L"");
+		addLine(std::wstring(isPlaying ? L"Now playing: " : L"Now paused: ") +
+			(currentTrackPath.empty() ? L"(nothing selected)" : currentTrackPath));
+
+		std::wstring volumeBar = L"Volume [";
 		for (int i = 0; i < 20; ++i)
-			std::cout << (i < filled ? '#' : '-');
-		std::cout << "] " << std::setw(3) << static_cast<int>(volume * 100.0f + 0.5f) << "%\n\n";
+			volumeBar += i < filled ? L'#' : L'-';
+		volumeBar += L"] " + std::to_wstring(static_cast<int>(volume * 100.0f + 0.5f)) + L"%";
+		addLine(std::move(volumeBar));
 
 		if (enteringPath)
-			std::cout << "New music directory: " << pathInput << "_\n\n";
+			addLine(L"New music directory: " + Utf8ToWide(pathInput) + L"_");
 		else if (!statusMessage.empty())
-			std::cout << statusMessage << "\n\n";
+			addLine(Utf8ToWide(statusMessage));
+		else
+			addLine(L"");
 
-		std::cout << "Controls: W/S select  Enter play  Space pause/resume  N next  P previous\n"
-			<< "          +/- volume  C change directory  R refresh files  Q quit\n"
-			<< std::flush;
+		addLine(L"Controls: W/S select  Enter play  Space pause/resume  N next  P previous");
+		addLine(L"          +/- volume  C change directory  R refresh files  Q quit");
+
+		const std::size_t cellCount = static_cast<std::size_t>(width) * height;
+		std::vector<CHAR_INFO> buffer(cellCount);
+		const std::wstring emptyLine;
+		for (std::size_t row = 0; row < static_cast<std::size_t>(height); ++row) {
+			const std::wstring& line = row < lines.size() ? lines[row] : emptyLine;
+			for (int column = 0; column < width; ++column) {
+				CHAR_INFO& cell = buffer[row * width + column];
+				cell.Char.UnicodeChar = static_cast<std::size_t>(column) < line.size()
+					? line[column]
+					: L' ';
+				cell.Attributes = screenInfo.wAttributes;
+			}
+		}
+
+		const COORD bufferSize{ static_cast<SHORT>(width), static_cast<SHORT>(height) };
+		const COORD bufferOrigin{ 0, 0 };
+		SMALL_RECT target = screenInfo.srWindow;
+		WriteConsoleOutputW(console, buffer.data(), bufferSize, bufferOrigin, &target);
 	}
 }

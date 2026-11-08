@@ -3,7 +3,6 @@
 #include "../Data/FilesContainer.h"
 #include "../Logic/Player.h"
 
-#include <chrono>
 #include <cstddef>
 #include <string>
 
@@ -16,9 +15,11 @@ namespace MusicPlayer {
 		bool isRunning = true;
 		bool enteringPath = false;
 		std::string pathInput;
-		std::string currentTrackPath;
+		std::wstring currentTrackPath;
 		std::string statusMessage;
-		std::chrono::steady_clock::time_point lastRender{};
+		bool isDirty = true;
+		int lastConsoleWidth = 0;
+		int lastConsoleHeight = 0;
 
 		void HandleKey(int key);
 		void Render();
