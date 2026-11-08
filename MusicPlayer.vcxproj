@@ -133,6 +133,7 @@
     <ClCompile Include="Scripts\Commands\Commands.cpp" />
     <ClCompile Include="Scripts\Data\FilesContainer.cpp" />
     <ClCompile Include="Scripts\Commands\CommandsListener.cpp" />
+    <ClCompile Include="Scripts\Presentation\Visuals.cpp" />
     <ClCompile Include="Scripts\Logic\Player.cpp" />
     <ClCompile Include="external\imgui\imgui.cpp" />
     <ClCompile Include="external\imgui\imgui_draw.cpp" />
@@ -147,6 +148,7 @@
     <ClInclude Include="Scripts\Commands\Commands.h" />
     <ClInclude Include="Scripts\Data\FilesContainer.h" />
     <ClInclude Include="Scripts\Commands\CommandsListener.h" />
+    <ClInclude Include="Scripts\Presentation\Visuals.h" />
     <ClInclude Include="Scripts\Logic\Player.h" />
     <ClInclude Include="external\imgui\imconfig.h" />
     <ClInclude Include="external\imgui\imgui.h" />
