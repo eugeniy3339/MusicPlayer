@@ -198,7 +198,7 @@ namespace MusicPlayer {
 				const std::size_t index = firstVisible + row;
 				if (index >= fileList->size())
 					break;
-				const std::wstring name = (*fileList)[index].getPath()->filename().wstring();
+				const std::wstring name = Utf8ToWide(*(*fileList)[index].getName());
 				addLine((index == selectedFile ? L" > " : L"   ") + name);
 			}
 		}

@@ -9,11 +9,15 @@ namespace MusicPlayer {
 	class MusicFile {
 	private:
 		std::filesystem::path path;
+		std::string name;
+
+		std::string getName(std::filesystem::path& filePath);
 	public:
 		MusicFile(std::filesystem::path path);
 		~MusicFile();
 
 		std::filesystem::path* getPath();
+		std::string* getName();
 	};
 
 	class FilesContainer {

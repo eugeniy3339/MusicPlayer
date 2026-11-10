@@ -16,11 +16,20 @@ namespace MusicPlayer {
 		return &path;
 	}
 
+
+	std::string MusicFile::getName(std::filesystem::path& path) {
+		return path.stem().string();
+	}
+
+	std::string* MusicFile::getName() {
+		return &name;
+	}
+
 	MusicFile::MusicFile(std::filesystem::path path) {
 		this->path = path;
+		name = getName(this->path);
 	}
-	MusicFile::~MusicFile() {
-	}
+	MusicFile::~MusicFile() = default;
 
 #pragma endregion
 #pragma region FilesContainer
