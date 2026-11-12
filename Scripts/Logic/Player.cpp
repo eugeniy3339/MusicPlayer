@@ -58,8 +58,13 @@ namespace MusicPlayer
 		isPlaying = false;
 		curFile = nullptr;
 
+	#ifdef _WIN32
 		const ma_result result = ma_sound_init_from_file_w(
 			&engine, file.getPath()->c_str(), 0, nullptr, nullptr, &sound);
+	#else
+		const ma_result result = ma_sound_init_from_file(
+			&engine, file.getPath()->c_str(), 0, nullptr, nullptr, &sound);
+	#endif
 		if (result != MA_SUCCESS) {
 			std::cerr << "Failed to open audio file: " << *file.getPath()
 				<< " (miniaudio error " << result << ").\n";

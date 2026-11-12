@@ -17,8 +17,13 @@ namespace MusicPlayer {
 		bool enteringPath = false;
 		bool enteringSearch = false;
 		std::string pathInput;
+	#ifdef _WIN32
 		std::wstring searchInput;
 		std::wstring currentTrackPath;
+	#else
+		std::string searchInput;
+		std::string currentTrackPath;
+	#endif
 		std::string statusMessage;
 		bool isDirty = true;
 		int lastConsoleWidth = 0;
