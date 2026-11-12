@@ -4,6 +4,8 @@
 #include <windows.h>
 
 #include <filesystem>
+#include <algorithm>
+#include <cctype>
 #include <utility>
 #include <vector>
 
@@ -41,7 +43,7 @@ namespace MusicPlayer {
 			int key = _getch();
 			if (key == 0 || key == 0xE0) {
 				key = _getch();
-				if (!enteringPath && (key == 72 || key == 80))
+				if (!enteringPath && !enteringSearch && (key == 72 || key == 80))
 					HandleKey(key == 72 ? 'w' : 's');
 				continue;
 			}
@@ -70,6 +72,28 @@ namespace MusicPlayer {
 
 	void Visuals::HandleKey(int key) {
 		isDirty = true;
+		if (enteringSearch) {
+			if (key == '\r' || key == '\n') {
+				enteringSearch = false;
+				selectedFile = 0;
+				statusMessage = searchInput.empty() ? "Search cleared." : "Search applied.";
+			}
+			else if (key == 27) {
+				enteringSearch = false;
+				searchInput.clear();
+				selectedFile = 0;
+				statusMessage = "Search cleared.";
+			}
+			else if (key == '\b' || key == 127) {
+				if (!searchInput.empty()) searchInput.pop_back();
+				selectedFile = 0;
+			}
+			else if (key >= 32 && key <= 126) {
+				searchInput.push_back(static_cast<char>(key));
+				selectedFile = 0;
+			}
+			return;
+		}
 		if (enteringPath) {
 			if (key == '\r' || key == '\n') {
 				enteringPath = false;
@@ -98,14 +122,14 @@ namespace MusicPlayer {
 			return;
 		}
 
-		auto* fileList = files.getFiles();
+		auto matches = GetMatchingFiles();
 		switch (key) {
 		case 'w': case 'W':
-			if (!fileList->empty() && selectedFile > 0)
+			if (!matches.empty() && selectedFile > 0)
 				--selectedFile;
 			break;
 		case 's': case 'S':
-			if (!fileList->empty() && selectedFile + 1 < fileList->size())
+			if (!matches.empty() && selectedFile + 1 < matches.size())
 				++selectedFile;
 			break;
 		case '\r': case '\n':
@@ -131,16 +155,21 @@ namespace MusicPlayer {
 			break;
 		case 'r': case 'R':
 			files.RefreshList();
-			if (fileList->empty())
+			matches = GetMatchingFiles();
+			if (matches.empty())
 				selectedFile = 0;
-			else if (selectedFile >= fileList->size())
-				selectedFile = fileList->size() - 1;
+			else if (selectedFile >= matches.size())
+				selectedFile = matches.size() - 1;
 			statusMessage = "File list refreshed.";
 			break;
 		case 'c': case 'C':
 			enteringPath = true;
 			pathInput.clear();
 			statusMessage = "Type a directory path, then press Enter (Esc cancels).";
+			break;
+		case '/':
+			enteringSearch = true;
+			statusMessage = "Type a name search, then press Enter (Esc clears).";
 			break;
 		case 'q': case 'Q':
 			isRunning = false;
@@ -150,13 +179,32 @@ namespace MusicPlayer {
 		}
 	}
 
+	std::vector<std::size_t> Visuals::GetMatchingFiles() {
+		std::vector<std::size_t> matches;
+		auto* fileList = files.getFiles();
+		std::string needle = searchInput;
+		std::transform(needle.begin(), needle.end(), needle.begin(), [](unsigned char c) {
+			return static_cast<char>(std::tolower(c));
+		});
+		for (std::size_t i = 0; i < fileList->size(); ++i) {
+			std::string name = *(*fileList)[i].getName();
+			std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) {
+				return static_cast<char>(std::tolower(c));
+			});
+			if (name.find(needle) != std::string::npos)
+				matches.push_back(i);
+		}
+		return matches;
+	}
+
 	void Visuals::PlaySelected() {
 		auto* fileList = files.getFiles();
-		if (fileList->empty() || selectedFile >= fileList->size()) {
+		auto matches = GetMatchingFiles();
+		if (matches.empty() || selectedFile >= matches.size()) {
 			statusMessage = "No sound files are available in this directory.";
 			return;
 		}
-		player.Play((*fileList)[selectedFile]);
+		player.Play((*fileList)[matches[selectedFile]]);
 	}
 
 	void Visuals::Render() {
@@ -171,6 +219,7 @@ namespace MusicPlayer {
 			return;
 
 		auto* fileList = files.getFiles();
+		auto matches = GetMatchingFiles();
 		const bool isPlaying = *player.getIsPlaying();
 		const float volume = player.getVolume();
 		const int filled = static_cast<int>(volume * 20.0f + 0.5f);
@@ -185,20 +234,21 @@ namespace MusicPlayer {
 		addLine(L"============");
 		addLine(L"");
 		addLine(L"Sounds in: " + Utf8ToWide(*files.GetPathToMusicDirectory()));
+		addLine(L"Search: " + Utf8ToWide(searchInput) + (enteringSearch ? L"_" : L""));
 
-		const int listCapacity = height > 11 ? height - 11 : 1;
+		const int listCapacity = height > 12 ? height - 12 : 1;
 		const std::size_t visibleCount = static_cast<std::size_t>(listCapacity);
 		const std::size_t firstVisible = selectedFile >= visibleCount
 			? selectedFile - visibleCount + 1
 			: 0;
-		if (fileList->empty())
+		if (matches.empty())
 			addLine(L"  (no supported sound files found)");
 		else {
 			for (std::size_t row = 0; row < visibleCount; ++row) {
 				const std::size_t index = firstVisible + row;
-				if (index >= fileList->size())
+				if (index >= matches.size())
 					break;
-				const std::wstring name = Utf8ToWide(*(*fileList)[index].getName());
+				const std::wstring name = Utf8ToWide(*(*fileList)[matches[index]].getName());
 				addLine((index == selectedFile ? L" > " : L"   ") + name);
 			}
 		}
@@ -216,7 +266,9 @@ namespace MusicPlayer {
 		volumeBar += L"] " + std::to_wstring(static_cast<int>(volume * 100.0f + 0.5f)) + L"%";
 		addLine(std::move(volumeBar));
 
-		if (enteringPath)
+		if (enteringSearch)
+			addLine(L"Search: type name, Enter apply, Esc clear.");
+		else if (enteringPath)
 			addLine(L"New music directory: " + Utf8ToWide(pathInput) + L"_");
 		else if (!statusMessage.empty())
 			addLine(Utf8ToWide(statusMessage));
@@ -225,6 +277,7 @@ namespace MusicPlayer {
 
 		addLine(L"Controls: W/S select  Enter play  Space pause/resume  N next  P previous");
 		addLine(L"          +/- volume  C change directory  R refresh files  Q quit");
+		addLine(L"          / search by track name");
 
 		const std::size_t cellCount = static_cast<std::size_t>(width) * height;
 		std::vector<CHAR_INFO> buffer(cellCount);

@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <string>
+#include <vector>
 
 namespace MusicPlayer {
 	class Visuals {
@@ -14,7 +15,9 @@ namespace MusicPlayer {
 		std::size_t selectedFile = 0;
 		bool isRunning = true;
 		bool enteringPath = false;
+		bool enteringSearch = false;
 		std::string pathInput;
+		std::string searchInput;
 		std::wstring currentTrackPath;
 		std::string statusMessage;
 		bool isDirty = true;
@@ -24,6 +27,7 @@ namespace MusicPlayer {
 		void HandleKey(int key);
 		void Render();
 		void PlaySelected();
+		std::vector<std::size_t> GetMatchingFiles();
 
 	public:
 		Visuals(Player& player, FilesContainer& files);
