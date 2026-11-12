@@ -17,8 +17,8 @@ namespace MusicPlayer {
 	}
 
 
-	std::string MusicFile::getName(std::filesystem::path& path) {
-		return path.stem().string();
+	std::string MusicFile::getName(const std::filesystem::path& filePath) {
+		return PathToUtf8(filePath.stem());
 	}
 
 	std::string* MusicFile::getName() {

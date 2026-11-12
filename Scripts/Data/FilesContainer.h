@@ -11,7 +11,7 @@ namespace MusicPlayer {
 		std::filesystem::path path;
 		std::string name;
 
-		std::string getName(std::filesystem::path& filePath);
+		std::string getName(const std::filesystem::path& filePath);
 	public:
 		MusicFile(std::filesystem::path path);
 		~MusicFile();
