@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <cstdlib>
 
 namespace MusicPlayer {
 	namespace {
@@ -91,6 +92,10 @@ namespace MusicPlayer {
 	}
 
 	void FilesContainer::SetPathToMusicDirectory(std::string path) {
+		if (!path.empty() && path[0] == '~' && (path.size() == 1 || path[1] == '/')) {
+			if (const char* home = std::getenv("HOME"))
+				path.replace(0, 1, home);
+		}
 		pathToMusicDirectory = path;
 		saver.SavePath(pathToMusicDirectory);
 		RefreshList();

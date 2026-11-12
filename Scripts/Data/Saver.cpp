@@ -29,13 +29,26 @@ namespace MusicPlayer {
 	Saver::~Saver() = default;
 
 	std::filesystem::path Saver::GetJsonFile() {
+		std::filesystem::path folder;
+#ifdef _WIN32
 		char* appData = nullptr;
 		size_t size = 0;
 		if (_dupenv_s(&appData, &size, "APPDATA") != 0 || appData == nullptr)
 			throw std::runtime_error("APPDATA environment variable is unavailable");
 
-		std::filesystem::path folder = std::filesystem::path(appData) / pathToJson;
+		folder = std::filesystem::path(appData) / pathToJson;
 		free(appData);
+#else
+		const char* configHome = std::getenv("XDG_CONFIG_HOME");
+		if (configHome != nullptr && configHome[0] != '\0') {
+			folder = std::filesystem::path(configHome) / pathToJson;
+		} else {
+			const char* home = std::getenv("HOME");
+			if (home == nullptr || home[0] == '\0')
+				throw std::runtime_error("HOME environment variable is unavailable");
+			folder = std::filesystem::path(home) / ".config" / pathToJson;
+		}
+#endif
 		std::filesystem::create_directories(folder);
 		return folder / "Data.json";
 	}

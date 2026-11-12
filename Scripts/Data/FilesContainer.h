@@ -22,7 +22,11 @@ namespace MusicPlayer {
 
 	class FilesContainer {
 	private:
+#ifdef _WIN32
 		const std::string defaultPathToMusicDirectory = "C:\\Music";
+#else
+		const std::string defaultPathToMusicDirectory = "~/Music";
+#endif
 		const std::string supportedExtensions[3]{ ".wav", ".mp3", ".flac" };
 		static FilesContainer* instance;
 

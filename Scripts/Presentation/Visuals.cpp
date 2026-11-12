@@ -1,5 +1,6 @@
 #include "Visuals.h"
 
+#ifdef _WIN32
 #include <conio.h>
 #include <windows.h>
 
@@ -308,3 +309,51 @@ namespace MusicPlayer {
 		WriteConsoleOutputW(console, buffer.data(), bufferSize, bufferOrigin, &target);
 	}
 }
+
+#else
+#include <algorithm>
+#include <chrono>
+#include <cctype>
+#include <iostream>
+#include <thread>
+#include <termios.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+namespace MusicPlayer {
+namespace {
+class TerminalMode {
+    termios original{}; bool active = false;
+public:
+    TerminalMode() { if (isatty(STDIN_FILENO) && tcgetattr(STDIN_FILENO, &original) == 0) { termios raw = original; raw.c_lflag &= static_cast<tcflag_t>(~(ICANON | ECHO)); raw.c_cc[VMIN] = 0; raw.c_cc[VTIME] = 0; tcsetattr(STDIN_FILENO, TCSANOW, &raw); active = true; } }
+    ~TerminalMode() { if (active) tcsetattr(STDIN_FILENO, TCSANOW, &original); }
+};
+std::string Lower(std::string value) { std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); }); return value; }
+}
+Visuals::Visuals(Player& player, FilesContainer& files) : player(player), files(files) {
+ player.onMusicStarted.append([this](MusicFile file) { currentTrackPath = file.getPath()->string(); isDirty = true; });
+ player.onMusicPaused.append([this]() { isDirty = true; }); player.onMusicResumed.append([this]() { isDirty = true; }); player.onVolumeChanged.append([this](float) { isDirty = true; }); files.onFilesListRefreshed.append([this]() { isDirty = true; });
+}
+bool Visuals::Update() { static TerminalMode terminalMode; char key; while (::read(STDIN_FILENO, &key, 1) == 1) HandleKey(static_cast<unsigned char>(key)); if (isDirty) { Render(); isDirty = false; } std::this_thread::sleep_for(std::chrono::milliseconds(16)); return isRunning; }
+std::vector<std::size_t> Visuals::GetMatchingFiles() { std::vector<std::size_t> matches; const std::string needle = Lower(std::string(searchInput.begin(), searchInput.end())); auto* list = files.getFiles(); for (std::size_t i = 0; i < list->size(); ++i) if (Lower(*(*list)[i].getName()).find(needle) != std::string::npos) matches.push_back(i); return matches; }
+void Visuals::HandleKey(int key) {
+ isDirty = true;
+ if (enteringSearch) { if (key == '\r' || key == '\n') { enteringSearch = false; selectedFile = 0; statusMessage = "Search applied."; } else if (key == 27) { enteringSearch = false; searchInput.clear(); selectedFile = 0; statusMessage = "Search cleared."; } else if ((key == 8 || key == 127) && !searchInput.empty()) searchInput.pop_back(); else if (key >= 32 && key < 127) searchInput.push_back(static_cast<wchar_t>(key)); return; }
+ if (enteringPath) { if (key == '\r' || key == '\n') { enteringPath = false; if (!pathInput.empty()) { files.SetPathToMusicDirectory(pathInput); selectedFile = 0; statusMessage = "Music directory updated."; } pathInput.clear(); } else if (key == 27) { enteringPath = false; pathInput.clear(); statusMessage = "Path change cancelled."; } else if ((key == 8 || key == 127) && !pathInput.empty()) pathInput.pop_back(); else if (key >= 32 && key < 127) pathInput.push_back(static_cast<char>(key)); return; }
+ auto matches = GetMatchingFiles(); switch (key) {
+ case 'w': case 'W': if (selectedFile > 0) --selectedFile; break; case 's': case 'S': if (selectedFile + 1 < matches.size()) ++selectedFile; break;
+ case '\r': case '\n': if (!matches.empty()) player.Play((*files.getFiles())[matches[selectedFile]]); else statusMessage = "No supported sound files found."; break;
+ case ' ': if (*player.getIsPlaying()) player.Pause(); else player.Resume(); break; case 'n': case 'N': player.PlayNext(); break; case 'p': case 'P': player.PlayPrevious(); break;
+ case '+': case '=': player.setVolume(player.getVolume() + .05f); break; case '-': case '_': player.setVolume(player.getVolume() - .05f); break; case 'r': case 'R': files.RefreshList(); statusMessage = "File list refreshed."; break;
+ case 'c': case 'C': enteringPath = true; pathInput.clear(); statusMessage = "Type directory, then Enter (Esc cancels)."; break; case '/': enteringSearch = true; statusMessage = "Search by track name (Enter applies)."; break; case 'q': case 'Q': isRunning = false; break; }
+}
+void Visuals::Render() {
+ winsize size{}; int rows = 24; if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &size) == 0 && size.ws_row > 0) rows = size.ws_row;
+ std::cout << "\033[2J\033[H" << "MUSIC PLAYER\n===========\n\nSounds in: " << *files.GetPathToMusicDirectory() << "\nSearch: " << std::string(searchInput.begin(), searchInput.end()) << (enteringSearch ? "_" : "") << "\n";
+ auto* list = files.getFiles(); auto matches = GetMatchingFiles(); const std::size_t capacity = rows > 12 ? static_cast<std::size_t>(rows - 12) : 1;
+ if (matches.empty()) std::cout << "  (no supported sound files found)\n"; else { const std::size_t first = selectedFile >= capacity ? selectedFile - capacity + 1 : 0; for (std::size_t row = 0; row < capacity && first + row < matches.size(); ++row) std::cout << (first + row == selectedFile ? " > " : "   ") << *(*list)[matches[first + row]].getName() << '\n'; }
+ std::cout << "\nNow " << (*player.getIsPlaying() ? "playing: " : "paused: ") << (currentTrackPath.empty() ? "(nothing selected)" : currentTrackPath) << "\nVolume: " << static_cast<int>(player.getVolume() * 100) << "%\n";
+ if (enteringPath) std::cout << "Directory: " << pathInput << "_\n"; else if (!statusMessage.empty()) std::cout << statusMessage << '\n';
+ std::cout << "Controls: W/S select  Enter play  Space pause  N/P next/previous\n          +/- volume  C change directory  R refresh  / search  Q quit\n" << std::flush;
+}
+}
+#endif
