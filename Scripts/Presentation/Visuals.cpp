@@ -4,8 +4,6 @@
 #include <windows.h>
 
 #include <filesystem>
-#include <algorithm>
-#include <cctype>
 #include <utility>
 #include <vector>
 
@@ -25,6 +23,19 @@ namespace MusicPlayer {
 				result.data(), size);
 			return result;
 		}
+
+		std::wstring Lowercase(std::wstring value) {
+			if (value.empty())
+				return value;
+			const int size = LCMapStringEx(LOCALE_NAME_INVARIANT, LCMAP_LOWERCASE,
+				value.data(), static_cast<int>(value.size()), nullptr, 0, nullptr, nullptr, 0);
+			if (size <= 0)
+				return value;
+			std::wstring result(size, L'\0');
+			LCMapStringEx(LOCALE_NAME_INVARIANT, LCMAP_LOWERCASE, value.data(),
+				static_cast<int>(value.size()), result.data(), size, nullptr, nullptr, 0);
+			return result;
+		}
 	}
 
 	Visuals::Visuals(Player& player, FilesContainer& files) : player(player), files(files) {
@@ -40,9 +51,9 @@ namespace MusicPlayer {
 
 	bool Visuals::Update() {
 		while (_kbhit()) {
-			int key = _getch();
+			int key = _getwch();
 			if (key == 0 || key == 0xE0) {
-				key = _getch();
+				key = _getwch();
 				if (!enteringPath && !enteringSearch && (key == 72 || key == 80))
 					HandleKey(key == 72 ? 'w' : 's');
 				continue;
@@ -85,11 +96,15 @@ namespace MusicPlayer {
 				statusMessage = "Search cleared.";
 			}
 			else if (key == '\b' || key == 127) {
-				if (!searchInput.empty()) searchInput.pop_back();
+				if (!searchInput.empty()) {
+					searchInput.pop_back();
+					if (!searchInput.empty() && searchInput.back() >= 0xD800 && searchInput.back() <= 0xDBFF)
+						searchInput.pop_back();
+				}
 				selectedFile = 0;
 			}
-			else if (key >= 32 && key <= 126) {
-				searchInput.push_back(static_cast<char>(key));
+			else if (key >= 32 && key <= 0xFFFF) {
+				searchInput.push_back(static_cast<wchar_t>(key));
 				selectedFile = 0;
 			}
 			return;
@@ -182,16 +197,10 @@ namespace MusicPlayer {
 	std::vector<std::size_t> Visuals::GetMatchingFiles() {
 		std::vector<std::size_t> matches;
 		auto* fileList = files.getFiles();
-		std::string needle = searchInput;
-		std::transform(needle.begin(), needle.end(), needle.begin(), [](unsigned char c) {
-			return static_cast<char>(std::tolower(c));
-		});
+		const std::wstring needle = Lowercase(searchInput);
 		for (std::size_t i = 0; i < fileList->size(); ++i) {
-			std::string name = *(*fileList)[i].getName();
-			std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) {
-				return static_cast<char>(std::tolower(c));
-			});
-			if (name.find(needle) != std::string::npos)
+			const std::wstring name = Lowercase(Utf8ToWide(*(*fileList)[i].getName()));
+			if (name.find(needle) != std::wstring::npos)
 				matches.push_back(i);
 		}
 		return matches;
@@ -234,7 +243,7 @@ namespace MusicPlayer {
 		addLine(L"============");
 		addLine(L"");
 		addLine(L"Sounds in: " + Utf8ToWide(*files.GetPathToMusicDirectory()));
-		addLine(L"Search: " + Utf8ToWide(searchInput) + (enteringSearch ? L"_" : L""));
+		addLine(L"Search: " + searchInput + (enteringSearch ? L"_" : L""));
 
 		const int listCapacity = height > 12 ? height - 12 : 1;
 		const std::size_t visibleCount = static_cast<std::size_t>(listCapacity);

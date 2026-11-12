@@ -17,7 +17,7 @@ namespace MusicPlayer {
 		bool enteringPath = false;
 		bool enteringSearch = false;
 		std::string pathInput;
-		std::string searchInput;
+		std::wstring searchInput;
 		std::wstring currentTrackPath;
 		std::string statusMessage;
 		bool isDirty = true;
