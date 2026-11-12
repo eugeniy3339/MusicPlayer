@@ -148,6 +148,7 @@
     <ClInclude Include="Scripts\Commands\Commands.h" />
     <ClInclude Include="Scripts\Data\FilesContainer.h" />
     <ClInclude Include="Scripts\Commands\CommandsListener.h" />
+    <ClInclude Include="Scripts\musicplayerfunctions.h" />
     <ClInclude Include="Scripts\Presentation\Visuals.h" />
     <ClInclude Include="Scripts\Logic\Player.h" />
     <ClInclude Include="external\imgui\imconfig.h" />

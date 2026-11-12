@@ -27,7 +27,6 @@ namespace MusicPlayer {
 		void HandleKey(int key);
 		void Render();
 		void PlaySelected();
-		std::vector<std::size_t> GetMatchingFiles();
 
 	public:
 		Visuals(Player& player, FilesContainer& files);

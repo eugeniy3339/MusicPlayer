@@ -1,4 +1,5 @@
 #include "Visuals.h"
+#include "../musicplayerfunctions.h"
 
 #include <conio.h>
 #include <windows.h>
@@ -8,36 +9,6 @@
 #include <vector>
 
 namespace MusicPlayer {
-	namespace {
-		std::wstring Utf8ToWide(const std::string& value) {
-			if (value.empty())
-				return {};
-
-			const int size = MultiByteToWideChar(CP_UTF8, 0, value.data(),
-				static_cast<int>(value.size()), nullptr, 0);
-			if (size <= 0)
-				return std::wstring(value.begin(), value.end());
-
-			std::wstring result(size, L'\0');
-			MultiByteToWideChar(CP_UTF8, 0, value.data(), static_cast<int>(value.size()),
-				result.data(), size);
-			return result;
-		}
-
-		std::wstring Lowercase(std::wstring value) {
-			if (value.empty())
-				return value;
-			const int size = LCMapStringEx(LOCALE_NAME_INVARIANT, LCMAP_LOWERCASE,
-				value.data(), static_cast<int>(value.size()), nullptr, 0, nullptr, nullptr, 0);
-			if (size <= 0)
-				return value;
-			std::wstring result(size, L'\0');
-			LCMapStringEx(LOCALE_NAME_INVARIANT, LCMAP_LOWERCASE, value.data(),
-				static_cast<int>(value.size()), result.data(), size, nullptr, nullptr, 0);
-			return result;
-		}
-	}
-
 	Visuals::Visuals(Player& player, FilesContainer& files) : player(player), files(files) {
 		player.onMusicStarted.append([this](MusicFile file) {
 			currentTrackPath = file.getPath()->wstring();
@@ -137,7 +108,7 @@ namespace MusicPlayer {
 			return;
 		}
 
-		auto matches = GetMatchingFiles();
+		auto matches = files.GetMatchingFiles(searchInput);
 		switch (key) {
 		case 'w': case 'W':
 			if (!matches.empty() && selectedFile > 0)
@@ -170,7 +141,7 @@ namespace MusicPlayer {
 			break;
 		case 'r': case 'R':
 			files.RefreshList();
-			matches = GetMatchingFiles();
+			matches = files.GetMatchingFiles(searchInput);
 			if (matches.empty())
 				selectedFile = 0;
 			else if (selectedFile >= matches.size())
@@ -194,26 +165,14 @@ namespace MusicPlayer {
 		}
 	}
 
-	std::vector<std::size_t> Visuals::GetMatchingFiles() {
-		std::vector<std::size_t> matches;
-		auto* fileList = files.getFiles();
-		const std::wstring needle = Lowercase(searchInput);
-		for (std::size_t i = 0; i < fileList->size(); ++i) {
-			const std::wstring name = Lowercase(Utf8ToWide(*(*fileList)[i].getName()));
-			if (name.find(needle) != std::wstring::npos)
-				matches.push_back(i);
-		}
-		return matches;
-	}
-
 	void Visuals::PlaySelected() {
 		auto* fileList = files.getFiles();
-		auto matches = GetMatchingFiles();
+		auto matches = files.GetMatchingFiles(searchInput);
 		if (matches.empty() || selectedFile >= matches.size()) {
 			statusMessage = "No sound files are available in this directory.";
 			return;
 		}
-		player.Play((*fileList)[matches[selectedFile]]);
+		player.Play(matches[selectedFile]);
 	}
 
 	void Visuals::Render() {
@@ -228,7 +187,7 @@ namespace MusicPlayer {
 			return;
 
 		auto* fileList = files.getFiles();
-		auto matches = GetMatchingFiles();
+		auto matches = files.GetMatchingFiles(searchInput);
 		const bool isPlaying = *player.getIsPlaying();
 		const float volume = player.getVolume();
 		const int filled = static_cast<int>(volume * 20.0f + 0.5f);
@@ -257,7 +216,7 @@ namespace MusicPlayer {
 				const std::size_t index = firstVisible + row;
 				if (index >= matches.size())
 					break;
-				const std::wstring name = Utf8ToWide(*(*fileList)[matches[index]].getName());
+				const std::wstring name = Utf8ToWide(*matches[index].getName());
 				addLine((index == selectedFile ? L" > " : L"   ") + name);
 			}
 		}

@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include "../musicplayerfunctions.h"
 #include "Saver.h"
 #include "../../external/eventpp/callbacklist.h"
 
@@ -42,6 +43,18 @@ namespace MusicPlayer {
 		std::vector<MusicFile>* getFiles();
 
 		bool SupportsExtension(const std::string extension);
+
+		std::vector<MusicFile> GetMatchingFiles(const std::wstring search) {
+			std::vector<MusicFile> matches;
+			auto* fileList = getFiles();
+			std::wstring lowerSearch = Lowercase(search);
+			for (auto file : *fileList) {
+				const std::wstring name = Lowercase(Utf8ToWide(*file.getName()));
+				if (name.find(lowerSearch) != std::wstring::npos)
+					matches.push_back(file);
+			}
+			return matches;
+		}
 
 		eventpp::CallbackList<void()> onFilesListRefreshed;
 	};
