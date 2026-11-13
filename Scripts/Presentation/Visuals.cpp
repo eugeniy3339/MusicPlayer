@@ -6,15 +6,21 @@
 
 #include <d3d11.h>
 #include <windows.h>
+#include <wincodec.h>
+#include <wrl/client.h>
 #include <algorithm>
 #include <filesystem>
 #include <initializer_list>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
+#pragma comment(lib, "windowscodecs.lib")
+#pragma comment(lib, "ole32.lib")
 
 namespace MusicPlayer {
 	namespace {
@@ -24,6 +30,11 @@ namespace MusicPlayer {
 		ID3D11RenderTargetView* g_renderTarget = nullptr;
 		UINT g_resizeWidth = 0;
 		UINT g_resizeHeight = 0;
+		struct CoverArtTextureEntry {
+			ID3D11ShaderResourceView* texture = nullptr;
+			int lastUsedFrame = 0;
+		};
+		std::unordered_map<std::string, CoverArtTextureEntry> g_coverArtTextures;
 
 		void CreateRenderTarget() {
 			ID3D11Texture2D* backBuffer = nullptr;
@@ -92,6 +103,123 @@ namespace MusicPlayer {
 		std::string ToUtf8(const std::filesystem::path& path) {
 			const auto value = path.u8string();
 			return std::string(value.begin(), value.end());
+		}
+
+		ID3D11ShaderResourceView* CreateCoverArtTexture(const std::vector<std::uint8_t>& imageBytes) {
+			if (imageBytes.empty() || imageBytes.size() > MAXDWORD)
+				return nullptr;
+
+			using Microsoft::WRL::ComPtr;
+			ComPtr<IWICImagingFactory> factory;
+			if (FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
+				IID_PPV_ARGS(factory.GetAddressOf()))))
+				return nullptr;
+
+			ComPtr<IWICStream> stream;
+			if (FAILED(factory->CreateStream(stream.GetAddressOf())) ||
+				FAILED(stream->InitializeFromMemory(const_cast<BYTE*>(imageBytes.data()), static_cast<DWORD>(imageBytes.size()))))
+				return nullptr;
+
+			ComPtr<IWICBitmapDecoder> decoder;
+			if (FAILED(factory->CreateDecoderFromStream(stream.Get(), nullptr, WICDecodeMetadataCacheOnLoad,
+				decoder.GetAddressOf())))
+				return nullptr;
+
+			ComPtr<IWICBitmapFrameDecode> frame;
+			if (FAILED(decoder->GetFrame(0, frame.GetAddressOf())))
+				return nullptr;
+
+			UINT width = 0;
+			UINT height = 0;
+			if (FAILED(frame->GetSize(&width, &height)) || width == 0 || height == 0 || width > 4096 || height > 4096)
+				return nullptr;
+
+			ComPtr<IWICFormatConverter> converter;
+			constexpr UINT maxCoverTextureSize = 512;
+			const float scale = (std::min)(1.0f, static_cast<float>(maxCoverTextureSize) /
+				static_cast<float>((std::max)(width, height)));
+			const UINT outputWidth = (std::max)(1u, static_cast<UINT>(width * scale));
+			const UINT outputHeight = (std::max)(1u, static_cast<UINT>(height * scale));
+			ComPtr<IWICBitmapScaler> scaler;
+			IWICBitmapSource* imageSource = frame.Get();
+			if ((outputWidth != width || outputHeight != height) &&
+				SUCCEEDED(factory->CreateBitmapScaler(scaler.GetAddressOf())) &&
+				SUCCEEDED(scaler->Initialize(frame.Get(), outputWidth, outputHeight, WICBitmapInterpolationModeFant)))
+				imageSource = scaler.Get();
+
+			if (imageSource == frame.Get()) {
+				// Keep large source dimensions from allocating oversized GPU textures.
+				if (outputWidth != width || outputHeight != height)
+					return nullptr;
+			}
+			if (FAILED(factory->CreateFormatConverter(converter.GetAddressOf())) ||
+				FAILED(converter->Initialize(imageSource, GUID_WICPixelFormat32bppRGBA, WICBitmapDitherTypeNone,
+					nullptr, 0.0, WICBitmapPaletteTypeCustom)))
+				return nullptr;
+			const UINT rowPitch = outputWidth * 4;
+			std::vector<BYTE> pixels(static_cast<std::size_t>(rowPitch) * outputHeight);
+			if (FAILED(converter->CopyPixels(nullptr, rowPitch, static_cast<UINT>(pixels.size()), pixels.data())))
+				return nullptr;
+
+			D3D11_TEXTURE2D_DESC textureDesc{};
+			textureDesc.Width = outputWidth;
+			textureDesc.Height = outputHeight;
+			textureDesc.MipLevels = 1;
+			textureDesc.ArraySize = 1;
+			textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			textureDesc.SampleDesc.Count = 1;
+			textureDesc.Usage = D3D11_USAGE_DEFAULT;
+			textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+			D3D11_SUBRESOURCE_DATA initialData{};
+			initialData.pSysMem = pixels.data();
+			initialData.SysMemPitch = rowPitch;
+
+			ComPtr<ID3D11Texture2D> texture;
+			if (FAILED(g_device->CreateTexture2D(&textureDesc, &initialData, texture.GetAddressOf())))
+				return nullptr;
+			ID3D11ShaderResourceView* textureView = nullptr;
+			if (FAILED(g_device->CreateShaderResourceView(texture.Get(), nullptr, &textureView)))
+				return nullptr;
+			return textureView;
+		}
+
+		ID3D11ShaderResourceView* GetCoverArtTexture(MusicFile& file) {
+			const auto& imageBytes = file.getMetadata().getCoverArt();
+			if (imageBytes.empty())
+				return nullptr;
+			const std::string key = ToUtf8(*file.getPath());
+			const auto cached = g_coverArtTextures.find(key);
+			if (cached != g_coverArtTextures.end()) {
+				cached->second.lastUsedFrame = ImGui::GetFrameCount();
+				return cached->second.texture;
+			}
+			constexpr std::size_t maxCachedCoverArts = 32;
+			const int currentFrame = ImGui::GetFrameCount();
+			if (g_coverArtTextures.size() >= maxCachedCoverArts) {
+				auto oldest = g_coverArtTextures.end();
+				for (auto entry = g_coverArtTextures.begin(); entry != g_coverArtTextures.end(); ++entry) {
+					if (entry->second.lastUsedFrame == currentFrame)
+						continue;
+					if (oldest == g_coverArtTextures.end() || entry->second.lastUsedFrame < oldest->second.lastUsedFrame)
+						oldest = entry;
+				}
+				if (oldest != g_coverArtTextures.end()) {
+					if (oldest->second.texture)
+						oldest->second.texture->Release();
+					g_coverArtTextures.erase(oldest);
+				}
+			}
+			ID3D11ShaderResourceView* texture = CreateCoverArtTexture(imageBytes);
+			g_coverArtTextures.emplace(key, CoverArtTextureEntry{ texture, currentFrame });
+			return texture;
+		}
+
+		void ClearCoverArtTextures() {
+			for (auto& [path, entry] : g_coverArtTextures) {
+				if (entry.texture)
+					entry.texture->Release();
+			}
+			g_coverArtTextures.clear();
 		}
 
 		ImFont* LoadFirstAvailableFont(ImGuiIO& io, std::initializer_list<const char*> paths,
@@ -175,7 +303,8 @@ namespace MusicPlayer {
 		}
 
 		void DrawApp(FilesContainer& files, Player& player, bool& menuOpen, bool& settingsOpen,
-			bool& invalidMusicPath, std::array<char, 1024>& musicPathInput) {
+			bool& lyricsOpen, bool& showCoverArt, bool& invalidMusicPath,
+			std::array<char, 1024>& musicPathInput) {
 			const ImGuiViewport* viewport = ImGui::GetMainViewport();
 			ImGui::SetNextWindowPos(viewport->Pos, ImGuiCond_Always);
 			ImGui::SetNextWindowSize(viewport->Size, ImGuiCond_Always);
@@ -189,6 +318,9 @@ namespace MusicPlayer {
 
 			if (ImGui::Button(menuOpen ? "CLOSE MENU" : "MENU", ImVec2(112.0f, 36.0f)))
 				menuOpen = !menuOpen;
+			ImGui::SameLine(0.0f, 8.0f);
+			if (ImGui::Button(lyricsOpen ? "HIDE LYRICS" : "LYRICS", ImVec2(124.0f, 36.0f)))
+				lyricsOpen = !lyricsOpen;
 			ImGui::SameLine(0.0f, 18.0f);
 			ImGui::TextDisabled("MUSIC PLAYER");
 			ImGui::Spacing();
@@ -210,7 +342,11 @@ namespace MusicPlayer {
 					ImGui::SameLine();
 				}
 
-				if (ImGui::BeginChild("MainPanel", ImVec2(0.0f, 0.0f), false)) {
+				constexpr float lyricsPanelWidth = 280.0f;
+				const float mainPanelWidth = lyricsOpen
+					? (std::max)(0.0f, ImGui::GetContentRegionAvail().x - lyricsPanelWidth - ImGui::GetStyle().ItemSpacing.x)
+					: 0.0f;
+				if (ImGui::BeginChild("MainPanel", ImVec2(mainPanelWidth, 0.0f), false)) {
 					if (settingsOpen) {
 						ImGui::SetWindowFontScale(1.35f);
 						ImGui::TextUnformatted("Settings");
@@ -229,6 +365,7 @@ namespace MusicPlayer {
 							std::error_code error;
 							if (!path.empty() && std::filesystem::is_directory(folder, error)) {
 								player.Stop();
+								ClearCoverArtTextures();
 								files.SetPathToMusicDirectory(std::string(path));
 								invalidMusicPath = false;
 							}
@@ -247,26 +384,79 @@ namespace MusicPlayer {
 						ImGui::SetWindowFontScale(1.0f);
 						ImGui::SameLine();
 						ImGui::TextDisabled("%d tracks", static_cast<int>(files.getFiles()->size()));
+						ImGui::SameLine(0.0f, 14.0f);
+						if (ImGui::Button("REFRESH")) {
+							ClearCoverArtTextures();
+							files.RefreshList();
+						}
+						ImGui::SameLine(0.0f, 20.0f);
+						const bool titleOnlyActive = !showCoverArt;
+						if (titleOnlyActive) {
+							ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.94f, 0.94f, 0.94f, 1.0f));
+							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
+						}
+						if (ImGui::Button("TITLE ONLY"))
+							showCoverArt = false;
+						if (titleOnlyActive)
+							ImGui::PopStyleColor(2);
+						ImGui::SameLine();
+						const bool coverArtActive = showCoverArt;
+						if (coverArtActive) {
+							ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.94f, 0.94f, 0.94f, 1.0f));
+							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
+						}
+						if (ImGui::Button("TITLE + COVER"))
+							showCoverArt = true;
+						if (coverArtActive)
+							ImGui::PopStyleColor(2);
 						ImGui::Spacing();
-						if (ImGui::BeginTable("Tracks", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerH |
+						const int columnCount = showCoverArt ? 2 : 1;
+						const char* tableId = showCoverArt ? "TracksWithCoverArt" : "TracksTitleOnly";
+						if (ImGui::BeginTable(tableId, columnCount, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerH |
 							ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_ScrollY)) {
-							ImGui::TableSetupColumn("TITLE", ImGuiTableColumnFlags_WidthStretch, 0.68f);
-							ImGui::TableSetupColumn("LOCATION", ImGuiTableColumnFlags_WidthStretch, 0.32f);
+							if (showCoverArt) {
+								ImGui::TableSetupColumn("COVER", ImGuiTableColumnFlags_WidthFixed, 68.0f);
+								ImGui::TableSetupColumn("TITLE", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+							}
+							else {
+								ImGui::TableSetupColumn("TITLE", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+							}
 							ImGui::TableSetupScrollFreeze(0, 1);
 							ImGui::TableHeadersRow();
-							constexpr float trackRowHeight = 42.0f;
 							int index = 0;
 							for (MusicFile& file : *files.getFiles()) {
 								const std::string title = *file.getName();
-								const std::string location = ToUtf8(file.getPath()->parent_path());
 								const bool selected = player.getCurFile() == &file;
+								const float trackRowHeight = showCoverArt ? 64.0f : 42.0f;
 								ImGui::TableNextRow(ImGuiTableRowFlags_None, trackRowHeight);
 								ImGui::TableSetColumnIndex(0);
-								if (ImGui::Selectable((title + "##track" + std::to_string(index)).c_str(), selected,
-									ImGuiSelectableFlags_SpanAllColumns, ImVec2(0.0f, trackRowHeight)))
-									player.Play(file);
-								ImGui::TableSetColumnIndex(1);
-								ImGui::TextDisabled("%s", location.c_str());
+								if (showCoverArt) {
+									const ImVec2 cellPosition = ImGui::GetCursorScreenPos();
+									if (ImGui::Selectable(("##track" + std::to_string(index)).c_str(), selected,
+										ImGuiSelectableFlags_SpanAllColumns, ImVec2(0.0f, trackRowHeight)))
+										player.Play(file);
+									const float imageSize = 46.0f;
+									const ImVec2 imageMin(cellPosition.x + 10.0f, cellPosition.y + (trackRowHeight - imageSize) * 0.5f);
+									const ImVec2 imageMax(imageMin.x + imageSize, imageMin.y + imageSize);
+									if (ImGui::IsItemVisible()) {
+										if (ID3D11ShaderResourceView* cover = GetCoverArtTexture(file))
+											ImGui::GetWindowDrawList()->AddImage(ImTextureRef(cover), imageMin, imageMax);
+										else {
+											ImDrawList* drawList = ImGui::GetWindowDrawList();
+											drawList->AddRectFilled(imageMin, imageMax, ImGui::GetColorU32(ImGuiCol_FrameBg), 4.0f);
+											const ImVec2 center(imageMin.x + imageSize * 0.5f, imageMin.y + imageSize * 0.5f);
+											drawList->AddCircle(center, 12.0f, ImGui::GetColorU32(ImGuiCol_TextDisabled), 0, 2.0f);
+											drawList->AddCircleFilled(center, 2.5f, ImGui::GetColorU32(ImGuiCol_TextDisabled));
+										}
+									}
+									ImGui::TableSetColumnIndex(1);
+									ImGui::Text("%s", title.c_str());
+								}
+								else {
+									if (ImGui::Selectable((title + "##track" + std::to_string(index)).c_str(), selected,
+										ImGuiSelectableFlags_SpanAllColumns, ImVec2(0.0f, trackRowHeight)))
+										player.Play(file);
+								}
 								++index;
 							}
 							ImGui::EndTable();
@@ -278,6 +468,27 @@ namespace MusicPlayer {
 					}
 				}
 				ImGui::EndChild();
+				if (lyricsOpen) {
+					ImGui::SameLine();
+					if (ImGui::BeginChild("LyricsPanel", ImVec2(lyricsPanelWidth, 0.0f), true)) {
+						ImGui::TextDisabled("LYRICS");
+						ImGui::Separator();
+						if (MusicFile* current = player.getCurFile()) {
+							ImGui::TextWrapped("%s", current->getName()->c_str());
+							const std::string& lyrics = current->getMetadata().getLyrics();
+							ImGui::Spacing();
+							ImGui::Separator();
+							if (lyrics.empty())
+								ImGui::TextDisabled("No lyrics are available for this track.");
+							else
+								ImGui::TextWrapped("%s", lyrics.c_str());
+						}
+						else {
+							ImGui::TextDisabled("Start a track to see its lyrics.");
+						}
+					}
+					ImGui::EndChild();
+				}
 			}
 			ImGui::EndChild();
 
@@ -351,6 +562,8 @@ namespace MusicPlayer {
 			UnregisterClassW(wc.lpszClassName, wc.hInstance);
 			return 1;
 		}
+		const HRESULT comResult = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+		const bool uninitializeCom = SUCCEEDED(comResult);
 
 		ShowWindow(window, SW_SHOWDEFAULT);
 		UpdateWindow(window);
@@ -383,7 +596,8 @@ namespace MusicPlayer {
 			ImGui_ImplDX11_NewFrame();
 			ImGui_ImplWin32_NewFrame();
 			ImGui::NewFrame();
-			DrawApp(files, player, menuOpen, settingsOpen, invalidMusicPath, musicPathInput);
+			DrawApp(files, player, menuOpen, settingsOpen, lyricsOpen, showCoverArt,
+				invalidMusicPath, musicPathInput);
 			ImGui::Render();
 			const float clearColor[4] = { 0.035f, 0.035f, 0.035f, 1.0f };
 			g_context->OMSetRenderTargets(1, &g_renderTarget, nullptr);
@@ -395,7 +609,10 @@ namespace MusicPlayer {
 		ImGui_ImplDX11_Shutdown();
 		ImGui_ImplWin32_Shutdown();
 		ImGui::DestroyContext();
+		ClearCoverArtTextures();
 		CleanupDeviceD3D();
+		if (uninitializeCom)
+			CoUninitialize();
 		DestroyWindow(window);
 		UnregisterClassW(wc.lpszClassName, wc.hInstance);
 		return 0;

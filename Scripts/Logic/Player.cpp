@@ -24,8 +24,12 @@ namespace MusicPlayer
 			std::cerr << "Failed to initialize miniaudio engine.\n";
 		else if (ma_engine_set_volume(&engine, volume) != MA_SUCCESS)
 			std::cerr << "Failed to set miniaudio engine volume.\n";
+		filesListRefreshedHandle = filesContainer.onFilesListRefreshed.append([this]() {
+			RebindCurrentFile(curFilePath);
+		});
 	}
 	Player::~Player() {
+		filesContainer.onFilesListRefreshed.remove(filesListRefreshedHandle);
 		if (soundInitialized)
 			ma_sound_uninit(&sound);
 		if (engineInitialized)
@@ -57,6 +61,7 @@ namespace MusicPlayer
 		}
 		isPlaying = false;
 		curFile = nullptr;
+		curFilePath.clear();
 
 		const ma_result result = ma_sound_init_from_file_w(
 			&engine, file.getPath()->c_str(), 0, nullptr, nullptr, &sound);
@@ -68,6 +73,7 @@ namespace MusicPlayer
 
 		soundInitialized = true;
 		curFile = &file;
+		curFilePath = *file.getPath();
 		if (ma_sound_start(&sound) == MA_SUCCESS)
 		{
 			isPlaying = true;
@@ -132,7 +138,22 @@ namespace MusicPlayer
 			soundInitialized = false;
 		}
 		curFile = nullptr;
+		curFilePath.clear();
 		isPlaying = false;
+	}
+
+	void Player::RebindCurrentFile(const std::filesystem::path& path) {
+		if (path.empty())
+			return;
+
+		for (MusicFile& file : *filesContainer.getFiles()) {
+			if (*file.getPath() == path) {
+				curFile = &file;
+				curFilePath = path;
+				return;
+			}
+		}
+		Stop();
 	}
 
 	const float& Player::getVolume() const {

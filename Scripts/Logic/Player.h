@@ -2,6 +2,7 @@
 #include "../Data/FilesContainer.h"
 #include "../Data/Saver.h"
 #include "../../external/miniaudio.h"
+#include <filesystem>
 
 namespace MusicPlayer {
 	class Player {
@@ -11,6 +12,8 @@ namespace MusicPlayer {
 		Saver& saver;
 
 		MusicFile* curFile;
+		std::filesystem::path curFilePath;
+		eventpp::CallbackList<void()>::Handle filesListRefreshedHandle;
 		bool isPlaying;
 		ma_engine engine;
 		ma_sound sound;
@@ -34,6 +37,7 @@ namespace MusicPlayer {
 		void Pause();
 		void Resume();
 		void Stop();
+		void RebindCurrentFile(const std::filesystem::path& path);
 
 		const float& getVolume() const;
 		void setVolume(float volume);

@@ -16,6 +16,8 @@ namespace MusicPlayer {
 		Player& player;
 		bool menuOpen = false;
 		bool settingsOpen = false;
+		bool lyricsOpen = false;
+		bool showCoverArt = false;
 		bool invalidMusicPath = false;
 		std::array<char, 1024> musicPathInput{};
 	};
