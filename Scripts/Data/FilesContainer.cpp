@@ -109,6 +109,18 @@ namespace MusicPlayer {
 
 		return false;
 	}
+
+	std::vector<MusicFile> FilesContainer::GetMatchingFiles(const std::wstring search) {
+		std::vector<MusicFile> matches;
+		auto* fileList = getFiles();
+		std::wstring lowerSearch = Lowercase(search);
+		for (auto file : *fileList) {
+			const std::wstring name = Lowercase(Utf8ToWide(*file.getName()));
+			if (name.find(lowerSearch) != std::wstring::npos)
+				matches.push_back(file);
+		}
+		return matches;
+	}
 #pragma endregion
 }
 

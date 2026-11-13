@@ -132,6 +132,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Scripts\Commands\Commands.cpp" />
     <ClCompile Include="Scripts\Data\FilesContainer.cpp" />
+    <ClCompile Include="Scripts\musicplayerfunctions.cpp" />
     <ClCompile Include="Scripts\Commands\CommandsListener.cpp" />
     <ClCompile Include="Scripts\Presentation\Visuals.cpp" />
     <ClCompile Include="Scripts\Logic\Player.cpp" />

@@ -44,17 +44,7 @@ namespace MusicPlayer {
 
 		bool SupportsExtension(const std::string extension);
 
-		std::vector<MusicFile> GetMatchingFiles(const std::wstring search) {
-			std::vector<MusicFile> matches;
-			auto* fileList = getFiles();
-			std::wstring lowerSearch = Lowercase(search);
-			for (auto file : *fileList) {
-				const std::wstring name = Lowercase(Utf8ToWide(*file.getName()));
-				if (name.find(lowerSearch) != std::wstring::npos)
-					matches.push_back(file);
-			}
-			return matches;
-		}
+		std::vector<MusicFile> GetMatchingFiles(const std::wstring search);
 
 		eventpp::CallbackList<void()> onFilesListRefreshed;
 	};

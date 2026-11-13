@@ -101,6 +101,9 @@
     <ClInclude Include="Scripts\Presentation\Visuals.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Scripts\musicplayerfunctions.cpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Scripts\musicplayerfunctions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
