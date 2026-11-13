@@ -137,15 +137,36 @@ namespace MusicPlayer {
 			return result;
 		}
 
-		void SetComment(AudioMetadataData& metadata, const std::string& value) {
+	}
+
+	class AudioMetadataReader {
+	public:
+		static AudioMetadata Read(const std::filesystem::path& path);
+
+	private:
+		static void SetComment(AudioMetadata& metadata, const std::string& value);
+		static void SetDescription(AudioMetadata& metadata, const std::string& value);
+		static void SetTag(AudioMetadata& metadata, const std::string& key, const std::string& value);
+		static void ParseId3Picture(AudioMetadata& metadata, const std::uint8_t* data, std::size_t size);
+		static void ParseId3Frame(AudioMetadata& metadata, const std::string& frameId, const std::uint8_t* data, std::size_t size);
+		static void ParseId3Tag(AudioMetadata& metadata, const std::vector<std::uint8_t>& bytes);
+		static void ParseId3v1(AudioMetadata& metadata, const std::vector<std::uint8_t>& bytes);
+		static void ParseVorbisComments(AudioMetadata& metadata, const std::vector<std::uint8_t>& block);
+		static void ParseFlac(AudioMetadata& metadata, std::ifstream& stream, std::uint64_t fileSize);
+		static void ParseWaveInfo(AudioMetadata& metadata, const std::vector<std::uint8_t>& block);
+		static void ParseWave(AudioMetadata& metadata, std::ifstream& stream, std::uint64_t fileSize);
+		static void ParseMp3(AudioMetadata& metadata, std::ifstream& stream, std::uint64_t fileSize);
+	};
+
+	void AudioMetadataReader::SetComment(AudioMetadata& metadata, const std::string& value) {
 			if (metadata.comment.empty()) metadata.comment = value;
-		}
+	}
 
-		void SetDescription(AudioMetadataData& metadata, const std::string& value) {
+	void AudioMetadataReader::SetDescription(AudioMetadata& metadata, const std::string& value) {
 			if (metadata.description.empty()) metadata.description = value;
-		}
+	}
 
-		void SetTag(AudioMetadataData& metadata, const std::string& key, const std::string& value) {
+	void AudioMetadataReader::SetTag(AudioMetadata& metadata, const std::string& key, const std::string& value) {
 			if (value.empty()) return;
 			const std::string normalized = Uppercase(key);
 			if (normalized == "TITLE" && metadata.title.empty()) metadata.title = value;
@@ -160,9 +181,9 @@ namespace MusicPlayer {
 			else if ((normalized == "DESCRIPTION" || normalized == "SUBTITLE") && metadata.description.empty()) metadata.description = value;
 			else if ((normalized == "COMMENT" || normalized == "COMMENTS") && metadata.comment.empty()) metadata.comment = value;
 			else if ((normalized == "LYRICS" || normalized == "UNSYNCEDLYRICS") && metadata.lyrics.empty()) metadata.lyrics = value;
-		}
+	}
 
-		std::string DecodeEncodedString(const std::uint8_t* data, std::size_t size, std::size_t& offset,
+	static std::string DecodeEncodedString(const std::uint8_t* data, std::size_t size, std::size_t& offset,
 			std::uint8_t encoding) {
 			const std::size_t start = offset;
 			const bool utf16 = encoding == 1 || encoding == 2;
@@ -176,7 +197,7 @@ namespace MusicPlayer {
 			return value;
 		}
 
-		bool ReadAt(std::ifstream& stream, std::uint64_t offset, std::size_t size,
+	static bool ReadAt(std::ifstream& stream, std::uint64_t offset, std::size_t size,
 			std::vector<std::uint8_t>& output, std::size_t maximum = maxMetadataBlockSize) {
 			if (size > maximum || offset > static_cast<std::uint64_t>((std::numeric_limits<std::streamoff>::max)()))
 				return false;
@@ -190,14 +211,14 @@ namespace MusicPlayer {
 			return true;
 		}
 
-		std::uint32_t ReadSynchsafeValue(const std::uint8_t* data, std::size_t size) {
+	static std::uint32_t ReadSynchsafeValue(const std::uint8_t* data, std::size_t size) {
 			std::uint32_t value = 0;
 			for (std::size_t index = 0; index < size; ++index)
 				value = (value << 7) | (data[index] & 0x7f);
 			return value;
 		}
 
-		void ParseId3Picture(AudioMetadataData& metadata, const std::uint8_t* data, std::size_t size) {
+	void AudioMetadataReader::ParseId3Picture(AudioMetadata& metadata, const std::uint8_t* data, std::size_t size) {
 			if (size < 5 || !metadata.coverArt.empty()) return;
 			const std::uint8_t encoding = data[0];
 			std::size_t mimeEnd = 1;
@@ -211,7 +232,7 @@ namespace MusicPlayer {
 			metadata.coverArt.assign(data + descriptionOffset, data + size);
 		}
 
-		void ParseId3Frame(AudioMetadataData& metadata, const std::string& frameId,
+	void AudioMetadataReader::ParseId3Frame(AudioMetadata& metadata, const std::string& frameId,
 			const std::uint8_t* data, std::size_t size) {
 			if (size == 0) return;
 			if (frameId == "APIC") {
@@ -245,7 +266,7 @@ namespace MusicPlayer {
 			else if (frameId == "TIT3") SetTag(metadata, "DESCRIPTION", value);
 		}
 
-		void ParseId3Tag(AudioMetadataData& metadata, const std::vector<std::uint8_t>& bytes) {
+	void AudioMetadataReader::ParseId3Tag(AudioMetadata& metadata, const std::vector<std::uint8_t>& bytes) {
 			if (bytes.size() < 10 || bytes[0] != 'I' || bytes[1] != 'D' || bytes[2] != '3') return;
 			const std::uint8_t version = bytes[3];
 			if (version < 3 || version > 4 || (bytes[5] & 0x80) != 0) return; // Skip compressed/unsynchronized tags.
@@ -277,7 +298,7 @@ namespace MusicPlayer {
 			}
 		}
 
-		void ParseId3v1(AudioMetadataData& metadata, const std::vector<std::uint8_t>& bytes) {
+	void AudioMetadataReader::ParseId3v1(AudioMetadata& metadata, const std::vector<std::uint8_t>& bytes) {
 			if (bytes.size() != 128 || bytes[0] != 'T' || bytes[1] != 'A' || bytes[2] != 'G') return;
 			auto text = [&bytes](std::size_t offset, std::size_t size) {
 				while (size > 0 && (bytes[offset + size - 1] == 0 || bytes[offset + size - 1] == ' ')) --size;
@@ -293,7 +314,7 @@ namespace MusicPlayer {
 				SetComment(metadata, text(97, 30));
 		}
 
-		void ParseVorbisComments(AudioMetadataData& metadata, const std::vector<std::uint8_t>& block) {
+	void AudioMetadataReader::ParseVorbisComments(AudioMetadata& metadata, const std::vector<std::uint8_t>& block) {
 			if (block.size() < 8) return;
 			std::size_t offset = 0;
 			const std::uint32_t vendorLength = ReadLittleEndian32(block.data() + offset);
@@ -365,7 +386,7 @@ namespace MusicPlayer {
 			}
 		}
 
-		void ParseFlac(AudioMetadataData& metadata, std::ifstream& stream, std::uint64_t fileSize) {
+	void AudioMetadataReader::ParseFlac(AudioMetadata& metadata, std::ifstream& stream, std::uint64_t fileSize) {
 			std::vector<std::uint8_t> marker;
 			if (!ReadAt(stream, 0, 4, marker) || std::string(marker.begin(), marker.end()) != "fLaC") return;
 			std::uint64_t offset = 4;
@@ -410,7 +431,7 @@ namespace MusicPlayer {
 			}
 		}
 
-		void ParseWaveInfo(AudioMetadataData& metadata, const std::vector<std::uint8_t>& block) {
+	void AudioMetadataReader::ParseWaveInfo(AudioMetadata& metadata, const std::vector<std::uint8_t>& block) {
 			if (block.size() < 4 || std::string(block.begin(), block.begin() + 4) != "INFO") return;
 			std::size_t offset = 4;
 			while (offset + 8 <= block.size()) {
@@ -431,7 +452,7 @@ namespace MusicPlayer {
 			}
 		}
 
-		void ParseWave(AudioMetadataData& metadata, std::ifstream& stream, std::uint64_t fileSize) {
+	void AudioMetadataReader::ParseWave(AudioMetadata& metadata, std::ifstream& stream, std::uint64_t fileSize) {
 			std::vector<std::uint8_t> header;
 			if (!ReadAt(stream, 0, 12, header, 12) || std::string(header.begin(), header.begin() + 4) != "RIFF" ||
 				std::string(header.begin() + 8, header.end()) != "WAVE") return;
@@ -453,7 +474,7 @@ namespace MusicPlayer {
 			}
 		}
 
-		void ParseMp3(AudioMetadataData& metadata, std::ifstream& stream, std::uint64_t fileSize) {
+	void AudioMetadataReader::ParseMp3(AudioMetadata& metadata, std::ifstream& stream, std::uint64_t fileSize) {
 			std::vector<std::uint8_t> header;
 			if (fileSize >= 10 && ReadAt(stream, 0, 10, header, 10) && header[0] == 'I' && header[1] == 'D' && header[2] == '3') {
 				const std::size_t tagSize = ReadSynchsafe32(header.data() + 6);
@@ -466,28 +487,24 @@ namespace MusicPlayer {
 				if (ReadAt(stream, fileSize - 128, 128, tag, 128)) ParseId3v1(metadata, tag);
 			}
 		}
-	}
 
-	AudioMetadata ReadAudioMetadata(const std::filesystem::path& path) {
-		AudioMetadataData metadata;
+	AudioMetadata AudioMetadataReader::Read(const std::filesystem::path& path) {
+		AudioMetadata metadata;
 		std::ifstream stream(path, std::ios::binary);
-		if (!stream) return AudioMetadata();
+		if (!stream) return metadata;
 		std::error_code error;
 		const std::uint64_t fileSize = std::filesystem::file_size(path, error);
-		if (error || fileSize == 0) return AudioMetadata();
+		if (error || fileSize == 0) return metadata;
 		const std::string extension = path.extension().string();
 		if (extension == ".mp3" || extension == ".MP3") ParseMp3(metadata, stream, fileSize);
 		else if (extension == ".flac" || extension == ".FLAC") ParseFlac(metadata, stream, fileSize);
 		else if (extension == ".wav" || extension == ".WAV") ParseWave(metadata, stream, fileSize);
-		return AudioMetadata(std::move(metadata));
+		return metadata;
 	}
 
-	AudioMetadata::AudioMetadata(AudioMetadataData data)
-		: title(std::move(data.title)), artist(std::move(data.artist)), album(std::move(data.album)),
-		albumArtist(std::move(data.albumArtist)), genre(std::move(data.genre)), year(std::move(data.year)),
-		trackNumber(data.trackNumber), discNumber(data.discNumber), composer(std::move(data.composer)),
-		comment(std::move(data.comment)), description(std::move(data.description)), lyrics(std::move(data.lyrics)),
-		coverArtMimeType(std::move(data.coverArtMimeType)), coverArt(std::move(data.coverArt)) {}
+	AudioMetadata ReadAudioMetadata(const std::filesystem::path& path) {
+		return AudioMetadataReader::Read(path);
+	}
 
 	const std::string& AudioMetadata::getTitle() const { return title; }
 	const std::string& AudioMetadata::getArtist() const { return artist; }

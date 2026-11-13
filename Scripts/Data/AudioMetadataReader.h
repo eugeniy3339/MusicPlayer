@@ -6,27 +6,9 @@
 #include <vector>
 
 namespace MusicPlayer {
-	struct AudioMetadataData {
-		std::string title;
-		std::string artist;
-		std::string album;
-		std::string albumArtist;
-		std::string genre;
-		std::string year;
-		int trackNumber = 0;
-		int discNumber = 0;
-		std::string composer;
-		std::string comment;
-		std::string description;
-		std::string lyrics;
-		std::string coverArtMimeType;
-		std::vector<std::uint8_t> coverArt;
-	};
-
 	class AudioMetadata {
 	public:
 		AudioMetadata() = default;
-		explicit AudioMetadata(AudioMetadataData data);
 
 		const std::string& getTitle() const;
 		const std::string& getArtist() const;
@@ -44,6 +26,8 @@ namespace MusicPlayer {
 		const std::string& getCoverArtMimeType() const;
 
 	private:
+		friend class AudioMetadataReader;
+
 		std::string title;
 		std::string artist;
 		std::string album;
