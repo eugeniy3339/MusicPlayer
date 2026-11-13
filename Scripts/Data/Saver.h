@@ -21,6 +21,9 @@ namespace MusicPlayer {
 		float GetVolume();
 		void SaveVolume(float& volume);
 
+		int GetFilesListShowingType();
+		void SaveFilesListShowingType(int& type);
+
 		Saver();
 		~Saver();
 	};

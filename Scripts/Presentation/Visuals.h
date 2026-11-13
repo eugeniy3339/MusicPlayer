@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Data/FilesContainer.h"
+#include "../Data/Saver.h"
 #include "../Logic/Player.h"
 
 #include <array>
@@ -11,12 +12,13 @@
 namespace MusicPlayer {
 	class Visuals {
 	public:
-		Visuals(FilesContainer& files, Player& player);
+		Visuals(FilesContainer& files, Player& player, Saver& saver);
 		int Run();
 
 	private:
 		FilesContainer& files;
 		Player& player;
+		Saver& saver;
 		bool menuOpen = false;
 		bool settingsOpen = false;
 		bool lyricsOpen = false;

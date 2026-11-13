@@ -9,6 +9,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 	MusicPlayer::Saver saver{};
 	MusicPlayer::FilesContainer data(saver);
 	MusicPlayer::Player player(data, saver);
-	MusicPlayer::Visuals visuals(data, player);
+	MusicPlayer::Visuals visuals(data, player, saver);
 	return visuals.Run();
 }
