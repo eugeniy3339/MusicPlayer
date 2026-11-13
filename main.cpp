@@ -1,15 +1,14 @@
-#include "Scripts/FilesContainer.h"
-#include "Scripts/Player.h"
+#include "Scripts/Data/FilesContainer.h"
+#include "Scripts/Data/Saver.h"
+#include "Scripts/Logic/Player.h"
+#include "Scripts/Presentation/Visuals.h"
 
-using namespace MusicPlayer;
+#include <windows.h>
 
-int main()
-{
-	FilesContainer filesContainer = FilesContainer::FilesContainer();
-	Player player = Player();
-
-	std::vector<MusicFile>* filesList = filesContainer.getFiles();
-	player.Play((*filesList)[0]);
-
-	return 0;
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
+	MusicPlayer::Saver saver{};
+	MusicPlayer::FilesContainer data(saver);
+	MusicPlayer::Player player(data, saver);
+	MusicPlayer::Visuals visuals(data, player, saver);
+	return visuals.Run();
 }
