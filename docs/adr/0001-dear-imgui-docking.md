@@ -1,6 +1,6 @@
 # ADR 0001: Use Dear ImGui docking for the music player UI
 
-- Status: Accepted
+- Status: Superseded by [ADR 0002](0002-single-window-player-layout.md)
 - Date: 2026-11-13
 
 ## Context

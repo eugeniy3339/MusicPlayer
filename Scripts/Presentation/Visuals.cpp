@@ -6,6 +6,7 @@
 
 #include <d3d11.h>
 #include <windows.h>
+#include <algorithm>
 #include <filesystem>
 #include <string>
 
@@ -95,103 +96,144 @@ namespace MusicPlayer {
 		void ApplyStyle() {
 			ImGui::StyleColorsDark();
 			ImGuiStyle& style = ImGui::GetStyle();
-			style.WindowRounding = 10.0f;
-			style.ChildRounding = 8.0f;
-			style.FrameRounding = 6.0f;
-			style.PopupRounding = 8.0f;
-			style.ScrollbarRounding = 8.0f;
-			style.GrabRounding = 6.0f;
-			style.WindowPadding = ImVec2(18.0f, 16.0f);
-			style.FramePadding = ImVec2(12.0f, 8.0f);
-			style.ItemSpacing = ImVec2(10.0f, 9.0f);
+			style.WindowRounding = 0.0f;
+			style.ChildRounding = 4.0f;
+			style.FrameRounding = 4.0f;
+			style.PopupRounding = 4.0f;
+			style.ScrollbarRounding = 4.0f;
+			style.GrabRounding = 4.0f;
+			style.WindowPadding = ImVec2(28.0f, 24.0f);
+			style.FramePadding = ImVec2(12.0f, 9.0f);
+			style.ItemSpacing = ImVec2(10.0f, 8.0f);
+			style.WindowBorderSize = 0.0f;
 			auto& colors = style.Colors;
-			colors[ImGuiCol_WindowBg] = ImVec4(0.055f, 0.065f, 0.075f, 1.0f);
-			colors[ImGuiCol_ChildBg] = ImVec4(0.075f, 0.088f, 0.10f, 1.0f);
-			colors[ImGuiCol_PopupBg] = ImVec4(0.09f, 0.105f, 0.12f, 0.98f);
-			colors[ImGuiCol_FrameBg] = ImVec4(0.13f, 0.15f, 0.17f, 1.0f);
-			colors[ImGuiCol_FrameBgHovered] = ImVec4(0.18f, 0.21f, 0.22f, 1.0f);
-			colors[ImGuiCol_Button] = ImVec4(0.12f, 0.48f, 0.35f, 1.0f);
-			colors[ImGuiCol_ButtonHovered] = ImVec4(0.16f, 0.60f, 0.43f, 1.0f);
-			colors[ImGuiCol_ButtonActive] = ImVec4(0.10f, 0.40f, 0.29f, 1.0f);
-			colors[ImGuiCol_CheckMark] = ImVec4(0.28f, 0.82f, 0.58f, 1.0f);
-			colors[ImGuiCol_Header] = ImVec4(0.12f, 0.27f, 0.22f, 1.0f);
-			colors[ImGuiCol_HeaderHovered] = ImVec4(0.15f, 0.36f, 0.28f, 1.0f);
-			colors[ImGuiCol_Tab] = ImVec4(0.10f, 0.13f, 0.14f, 1.0f);
-			colors[ImGuiCol_TabHovered] = ImVec4(0.18f, 0.42f, 0.32f, 1.0f);
-			colors[ImGuiCol_TabSelected] = ImVec4(0.12f, 0.25f, 0.21f, 1.0f);
+			colors[ImGuiCol_WindowBg] = ImVec4(0.035f, 0.035f, 0.035f, 1.0f);
+			colors[ImGuiCol_ChildBg] = ImVec4(0.055f, 0.055f, 0.055f, 1.0f);
+			colors[ImGuiCol_PopupBg] = ImVec4(0.075f, 0.075f, 0.075f, 1.0f);
+			colors[ImGuiCol_Text] = ImVec4(0.94f, 0.94f, 0.94f, 1.0f);
+			colors[ImGuiCol_TextDisabled] = ImVec4(0.53f, 0.53f, 0.53f, 1.0f);
+			colors[ImGuiCol_Border] = ImVec4(0.18f, 0.18f, 0.18f, 1.0f);
+			colors[ImGuiCol_Separator] = ImVec4(0.18f, 0.18f, 0.18f, 1.0f);
+			colors[ImGuiCol_FrameBg] = ImVec4(0.11f, 0.11f, 0.11f, 1.0f);
+			colors[ImGuiCol_FrameBgHovered] = ImVec4(0.19f, 0.19f, 0.19f, 1.0f);
+			colors[ImGuiCol_FrameBgActive] = ImVec4(0.24f, 0.24f, 0.24f, 1.0f);
+			colors[ImGuiCol_Button] = ImVec4(0.15f, 0.15f, 0.15f, 1.0f);
+			colors[ImGuiCol_ButtonHovered] = ImVec4(0.25f, 0.25f, 0.25f, 1.0f);
+			colors[ImGuiCol_ButtonActive] = ImVec4(0.33f, 0.33f, 0.33f, 1.0f);
+			colors[ImGuiCol_CheckMark] = ImVec4(0.96f, 0.96f, 0.96f, 1.0f);
+			colors[ImGuiCol_Header] = ImVec4(0.17f, 0.17f, 0.17f, 1.0f);
+			colors[ImGuiCol_HeaderHovered] = ImVec4(0.22f, 0.22f, 0.22f, 1.0f);
+			colors[ImGuiCol_SliderGrab] = ImVec4(0.76f, 0.76f, 0.76f, 1.0f);
+			colors[ImGuiCol_SliderGrabActive] = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+			colors[ImGuiCol_TableHeaderBg] = ImVec4(0.10f, 0.10f, 0.10f, 1.0f);
+			colors[ImGuiCol_TableRowBg] = ImVec4(0.06f, 0.06f, 0.06f, 1.0f);
+			colors[ImGuiCol_TableRowBgAlt] = ImVec4(0.085f, 0.085f, 0.085f, 1.0f);
 		}
 
-		void DrawLibrary(FilesContainer& files, Player& player, ImGuiID dockspace) {
-			ImGui::SetNextWindowDockID(dockspace, ImGuiCond_FirstUseEver);
-			if (!ImGui::Begin("Library")) { ImGui::End(); return; }
-			ImGui::TextDisabled("YOUR MUSIC");
-			ImGui::Separator();
-			ImGui::Text("All songs");
+		void DrawApp(FilesContainer& files, Player& player) {
+			const ImGuiViewport* viewport = ImGui::GetMainViewport();
+			ImGui::SetNextWindowPos(viewport->Pos, ImGuiCond_Always);
+			ImGui::SetNextWindowSize(viewport->Size, ImGuiCond_Always);
+			constexpr ImGuiWindowFlags appFlags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+				ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings |
+				ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+			if (!ImGui::Begin("Music Player", nullptr, appFlags)) {
+				ImGui::End();
+				return;
+			}
+
+			ImGui::TextDisabled("MUSIC PLAYER");
+			ImGui::SameLine(0.0f, 20.0f);
+			ImGui::TextDisabled("/  YOUR LIBRARY");
+			ImGui::Spacing();
+			ImGui::SetWindowFontScale(1.35f);
+			ImGui::TextUnformatted("All songs");
+			ImGui::SetWindowFontScale(1.0f);
 			ImGui::SameLine();
 			ImGui::TextDisabled("%d tracks", static_cast<int>(files.getFiles()->size()));
 			ImGui::Spacing();
-			ImGui::Columns(2, "library-columns", false);
-			ImGui::TextDisabled("TITLE");
-			ImGui::NextColumn();
-			ImGui::TextDisabled("LOCATION");
-			ImGui::NextColumn();
 			ImGui::Separator();
-			int index = 0;
-			for (MusicFile& file : *files.getFiles()) {
-				const std::string title = *file.getName();
-				const std::string full = ToUtf8(file.getPath()->parent_path());
-				const bool selected = player.getCurFile() == &file;
-				if (ImGui::Selectable((title + "##track" + std::to_string(index)).c_str(), selected,
-					ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick))
-					player.Play(file);
-				ImGui::NextColumn();
-				ImGui::TextDisabled("%s", full.c_str());
-				ImGui::NextColumn();
-				++index;
-			}
-			ImGui::Columns(1);
-			if (files.getFiles()->empty()) {
-				ImGui::Spacing();
-				ImGui::TextWrapped("No music found. Add WAV, MP3, or FLAC files to your music folder, then restart the app.");
-			}
-			ImGui::End();
-		}
 
-		void DrawNowPlaying(Player& player, ImGuiID dockspace) {
-			ImGui::SetNextWindowDockID(dockspace, ImGuiCond_FirstUseEver);
-			if (!ImGui::Begin("Now Playing")) { ImGui::End(); return; }
-			ImGui::TextDisabled("NOW PLAYING");
-			ImGui::Separator();
-			MusicFile* current = player.getCurFile();
-			if (current) {
-				ImGui::Spacing();
-				ImGui::TextWrapped("%s", current->getName()->c_str());
-				ImGui::TextDisabled("%s", ToUtf8(current->getPath()->parent_path()).c_str());
+			constexpr float playerBarHeight = 112.0f;
+			if (ImGui::BeginChild("TrackList", ImVec2(0.0f, -playerBarHeight), false)) {
+				if (ImGui::BeginTable("Tracks", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerH |
+					ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_ScrollY,
+					ImVec2(0.0f, 0.0f))) {
+					ImGui::TableSetupColumn("TITLE", ImGuiTableColumnFlags_WidthStretch, 0.68f);
+					ImGui::TableSetupColumn("LOCATION", ImGuiTableColumnFlags_WidthStretch, 0.32f);
+					ImGui::TableSetupScrollFreeze(0, 1);
+					ImGui::TableHeadersRow();
+					constexpr float trackRowHeight = 42.0f;
+					int index = 0;
+					for (MusicFile& file : *files.getFiles()) {
+						const std::string title = *file.getName();
+						const std::string location = ToUtf8(file.getPath()->parent_path());
+						const bool selected = player.getCurFile() == &file;
+						ImGui::TableNextRow(ImGuiTableRowFlags_None, trackRowHeight);
+						ImGui::TableSetColumnIndex(0);
+						if (ImGui::Selectable((title + "##track" + std::to_string(index)).c_str(), selected,
+							ImGuiSelectableFlags_SpanAllColumns, ImVec2(0.0f, trackRowHeight)))
+							player.Play(file);
+						ImGui::TableSetColumnIndex(1);
+						ImGui::TextDisabled("%s", location.c_str());
+						++index;
+					}
+					ImGui::EndTable();
+				}
+				if (files.getFiles()->empty()) {
+					ImGui::Spacing();
+					ImGui::TextDisabled("No music found. Add WAV, MP3, or FLAC files to your music folder.");
+				}
 			}
-			else {
-				ImGui::TextDisabled("Choose a song from your library to start listening.");
-			}
-			ImGui::End();
-		}
+			ImGui::EndChild();
 
-		void DrawPlayback(Player& player, ImGuiID dockspace) {
-			ImGui::SetNextWindowDockID(dockspace, ImGuiCond_FirstUseEver);
-			if (!ImGui::Begin("Playback")) { ImGui::End(); return; }
-			if (ImGui::Button("|<")) player.PlayPrevious();
-			ImGui::SameLine();
-			const bool playing = *player.getIsPlaying();
-			if (ImGui::Button(playing ? "Pause" : "Play")) {
-				if (playing) player.Pause();
-				else if (player.getCurFile()) player.Resume();
-				else player.PlayNext();
+			if (ImGui::BeginChild("PlayerBar", ImVec2(0.0f, 0.0f), true,
+				ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse)) {
+				if (ImGui::BeginTable("PlayerBarLayout", 3, ImGuiTableFlags_SizingStretchProp)) {
+					ImGui::TableSetupColumn("CurrentTrack", ImGuiTableColumnFlags_WidthStretch, 0.34f);
+					ImGui::TableSetupColumn("Transport", ImGuiTableColumnFlags_WidthStretch, 0.36f);
+					ImGui::TableSetupColumn("Volume", ImGuiTableColumnFlags_WidthStretch, 0.30f);
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::TextDisabled("NOW PLAYING");
+					if (MusicFile* current = player.getCurFile()) {
+						ImGui::Text("%s", current->getName()->c_str());
+						ImGui::TextDisabled("%s", ToUtf8(current->getPath()->parent_path()).c_str());
+					}
+					else {
+						ImGui::TextDisabled("Nothing playing");
+					}
+
+					ImGui::TableSetColumnIndex(1);
+					const float buttonsWidth = 48.0f * 3.0f + ImGui::GetStyle().ItemSpacing.x * 2.0f;
+					const float centerX = ImGui::GetCursorPosX() + (ImGui::GetColumnWidth() - buttonsWidth) * 0.5f;
+					ImGui::SetCursorPosX((std::max)(centerX, ImGui::GetCursorPosX()));
+					if (ImGui::Button("<<", ImVec2(48.0f, 38.0f))) player.PlayPrevious();
+					ImGui::SameLine();
+					const bool playing = *player.getIsPlaying();
+					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.94f, 0.94f, 0.94f, 1.0f));
+					ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.78f, 0.78f, 0.78f, 1.0f));
+					ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.64f, 0.64f, 0.64f, 1.0f));
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
+					if (ImGui::Button(playing ? "||" : ">", ImVec2(48.0f, 38.0f))) {
+						if (playing) player.Pause();
+						else if (player.getCurFile()) player.Resume();
+						else player.PlayNext();
+					}
+					ImGui::PopStyleColor(4);
+					ImGui::SameLine();
+					if (ImGui::Button(">>", ImVec2(48.0f, 38.0f))) player.PlayNext();
+
+					ImGui::TableSetColumnIndex(2);
+					ImGui::TextDisabled("VOLUME");
+					float volumePercent = player.getVolume() * 100.0f;
+					ImGui::SetNextItemWidth(-1.0f);
+					if (ImGui::SliderFloat("##Volume", &volumePercent, 0.0f, 100.0f, "%.0f%%"))
+						player.setVolume(volumePercent / 100.0f);
+					ImGui::EndTable();
+				}
 			}
-			ImGui::SameLine();
-			if (ImGui::Button("|>")) player.PlayNext();
-			ImGui::Spacing();
-			float volume = player.getVolume();
-			ImGui::SetNextItemWidth(-1.0f);
-			if (ImGui::SliderFloat("Volume", &volume, 0.0f, 1.0f, "%.0f%%"))
-				player.setVolume(volume);
+			ImGui::EndChild();
 			ImGui::End();
 		}
 	}
@@ -216,7 +258,7 @@ namespace MusicPlayer {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_DockingEnable;
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		ApplyStyle();
 		ImGui_ImplWin32_Init(window);
 		ImGui_ImplDX11_Init(g_device, g_context);
@@ -241,13 +283,9 @@ namespace MusicPlayer {
 			ImGui_ImplDX11_NewFrame();
 			ImGui_ImplWin32_NewFrame();
 			ImGui::NewFrame();
-			const ImGuiID dockspace = ImGui::GetID("MusicPlayerDockspace");
-			ImGui::DockSpaceOverViewport(dockspace, ImGui::GetMainViewport());
-			DrawLibrary(files, player, dockspace);
-			DrawNowPlaying(player, dockspace);
-			DrawPlayback(player, dockspace);
+			DrawApp(files, player);
 			ImGui::Render();
-			const float clearColor[4] = { 0.055f, 0.065f, 0.075f, 1.0f };
+			const float clearColor[4] = { 0.035f, 0.035f, 0.035f, 1.0f };
 			g_context->OMSetRenderTargets(1, &g_renderTarget, nullptr);
 			g_context->ClearRenderTargetView(g_renderTarget, clearColor);
 			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
