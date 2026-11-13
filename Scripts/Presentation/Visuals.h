@@ -3,6 +3,8 @@
 #include "../Data/FilesContainer.h"
 #include "../Logic/Player.h"
 
+#include <array>
+
 namespace MusicPlayer {
 	class Visuals {
 	public:
@@ -12,5 +14,9 @@ namespace MusicPlayer {
 	private:
 		FilesContainer& files;
 		Player& player;
+		bool menuOpen = false;
+		bool settingsOpen = false;
+		bool invalidMusicPath = false;
+		std::array<char, 1024> musicPathInput{};
 	};
 }

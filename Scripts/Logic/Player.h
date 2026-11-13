@@ -33,6 +33,7 @@ namespace MusicPlayer {
 		void PlayPrevious();
 		void Pause();
 		void Resume();
+		void Stop();
 
 		const float& getVolume() const;
 		void setVolume(float volume);

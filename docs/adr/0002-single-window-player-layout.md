@@ -10,7 +10,7 @@ The first GUI iteration placed Library, Now Playing, and Playback in separate do
 
 ## Decision
 
-Render the app as one fixed main window. Show the library in the main content area and keep current-track information, transport controls, and volume in a bottom player bar. Use a monochrome palette. Do not enable or display a docking layout for these primary controls.
+Render the app as one fixed main window. A header menu toggles a side menu for Library and Settings navigation. Show the library or settings in the main content area and keep current-track information, transport controls, and volume in a bottom player bar. The initial settings page supports changing the music folder path. Use a monochrome palette. Do not enable or display a docking layout for these primary controls.
 
 ## Consequences
 

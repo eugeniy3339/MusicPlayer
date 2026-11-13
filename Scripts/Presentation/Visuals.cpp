@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <algorithm>
 #include <filesystem>
+#include <initializer_list>
 #include <string>
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
@@ -93,6 +94,49 @@ namespace MusicPlayer {
 			return std::string(value.begin(), value.end());
 		}
 
+		ImFont* LoadFirstAvailableFont(ImGuiIO& io, std::initializer_list<const char*> paths,
+			const ImFontConfig* config = nullptr) {
+			for (const char* path : paths) {
+				std::error_code error;
+				if (!std::filesystem::is_regular_file(path, error))
+					continue;
+
+				ImFontConfig fontConfig = config ? *config : ImFontConfig();
+				fontConfig.Flags |= ImFontFlags_NoLoadError;
+				if (ImFont* font = io.Fonts->AddFontFromFileTTF(path, 0.0f, &fontConfig))
+					return font;
+			}
+			return nullptr;
+		}
+
+		void LoadUnicodeFonts(ImGuiIO& io) {
+			ImFont* baseFont = LoadFirstAvailableFont(io, {
+				"C:\\Windows\\Fonts\\segoeui.ttf",
+				"C:\\Windows\\Fonts\\arial.ttf",
+				"C:\\Windows\\Fonts\\tahoma.ttf"
+			});
+			if (!baseFont)
+				baseFont = io.Fonts->AddFontDefaultVector();
+			io.FontDefault = baseFont;
+
+			ImFontConfig mergeConfig;
+			mergeConfig.MergeMode = true;
+			mergeConfig.Flags |= ImFontFlags_NoLoadError;
+			LoadFirstAvailableFont(io, {
+				"C:\\Windows\\Fonts\\arial.ttf",
+				"C:\\Windows\\Fonts\\tahoma.ttf"
+			}, &mergeConfig);
+			LoadFirstAvailableFont(io, {
+				"C:\\Windows\\Fonts\\msgothic.ttc",
+				"C:\\Windows\\Fonts\\YuGothM.ttc",
+				"C:\\Windows\\Fonts\\meiryo.ttc"
+			}, &mergeConfig);
+			LoadFirstAvailableFont(io, {
+				"C:\\Windows\\Fonts\\msyh.ttc",
+				"C:\\Windows\\Fonts\\simsun.ttc"
+			}, &mergeConfig);
+		}
+
 		void ApplyStyle() {
 			ImGui::StyleColorsDark();
 			ImGuiStyle& style = ImGui::GetStyle();
@@ -130,7 +174,8 @@ namespace MusicPlayer {
 			colors[ImGuiCol_TableRowBgAlt] = ImVec4(0.085f, 0.085f, 0.085f, 1.0f);
 		}
 
-		void DrawApp(FilesContainer& files, Player& player) {
+		void DrawApp(FilesContainer& files, Player& player, bool& menuOpen, bool& settingsOpen,
+			bool& invalidMusicPath, std::array<char, 1024>& musicPathInput) {
 			const ImGuiViewport* viewport = ImGui::GetMainViewport();
 			ImGui::SetNextWindowPos(viewport->Pos, ImGuiCond_Always);
 			ImGui::SetNextWindowSize(viewport->Size, ImGuiCond_Always);
@@ -142,48 +187,97 @@ namespace MusicPlayer {
 				return;
 			}
 
+			if (ImGui::Button(menuOpen ? "CLOSE MENU" : "MENU", ImVec2(112.0f, 36.0f)))
+				menuOpen = !menuOpen;
+			ImGui::SameLine(0.0f, 18.0f);
 			ImGui::TextDisabled("MUSIC PLAYER");
-			ImGui::SameLine(0.0f, 20.0f);
-			ImGui::TextDisabled("/  YOUR LIBRARY");
-			ImGui::Spacing();
-			ImGui::SetWindowFontScale(1.35f);
-			ImGui::TextUnformatted("All songs");
-			ImGui::SetWindowFontScale(1.0f);
-			ImGui::SameLine();
-			ImGui::TextDisabled("%d tracks", static_cast<int>(files.getFiles()->size()));
 			ImGui::Spacing();
 			ImGui::Separator();
 
 			constexpr float playerBarHeight = 112.0f;
-			if (ImGui::BeginChild("TrackList", ImVec2(0.0f, -playerBarHeight), false)) {
-				if (ImGui::BeginTable("Tracks", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerH |
-					ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_ScrollY,
-					ImVec2(0.0f, 0.0f))) {
-					ImGui::TableSetupColumn("TITLE", ImGuiTableColumnFlags_WidthStretch, 0.68f);
-					ImGui::TableSetupColumn("LOCATION", ImGuiTableColumnFlags_WidthStretch, 0.32f);
-					ImGui::TableSetupScrollFreeze(0, 1);
-					ImGui::TableHeadersRow();
-					constexpr float trackRowHeight = 42.0f;
-					int index = 0;
-					for (MusicFile& file : *files.getFiles()) {
-						const std::string title = *file.getName();
-						const std::string location = ToUtf8(file.getPath()->parent_path());
-						const bool selected = player.getCurFile() == &file;
-						ImGui::TableNextRow(ImGuiTableRowFlags_None, trackRowHeight);
-						ImGui::TableSetColumnIndex(0);
-						if (ImGui::Selectable((title + "##track" + std::to_string(index)).c_str(), selected,
-							ImGuiSelectableFlags_SpanAllColumns, ImVec2(0.0f, trackRowHeight)))
-							player.Play(file);
-						ImGui::TableSetColumnIndex(1);
-						ImGui::TextDisabled("%s", location.c_str());
-						++index;
+			const float contentHeight = (std::max)(0.0f, ImGui::GetContentRegionAvail().y - playerBarHeight);
+			if (ImGui::BeginChild("ContentArea", ImVec2(0.0f, contentHeight), false)) {
+				if (menuOpen) {
+					if (ImGui::BeginChild("SideMenu", ImVec2(220.0f, 0.0f), true)) {
+						ImGui::TextDisabled("MENU");
+						ImGui::Separator();
+						if (ImGui::Button("Library", ImVec2(-1.0f, 42.0f)))
+							settingsOpen = false;
+						if (ImGui::Button("Settings", ImVec2(-1.0f, 42.0f)))
+							settingsOpen = true;
 					}
-					ImGui::EndTable();
+					ImGui::EndChild();
+					ImGui::SameLine();
 				}
-				if (files.getFiles()->empty()) {
-					ImGui::Spacing();
-					ImGui::TextDisabled("No music found. Add WAV, MP3, or FLAC files to your music folder.");
+
+				if (ImGui::BeginChild("MainPanel", ImVec2(0.0f, 0.0f), false)) {
+					if (settingsOpen) {
+						ImGui::SetWindowFontScale(1.35f);
+						ImGui::TextUnformatted("Settings");
+						ImGui::SetWindowFontScale(1.0f);
+						ImGui::Spacing();
+						ImGui::Separator();
+						ImGui::Spacing();
+						ImGui::Text("Music folder");
+						ImGui::SetNextItemWidth(-1.0f);
+						ImGui::InputText("##MusicFolderPath", musicPathInput.data(), musicPathInput.size());
+						ImGui::TextDisabled("Enter the full path to the folder containing your music.");
+						ImGui::Spacing();
+						if (ImGui::Button("Save folder", ImVec2(140.0f, 40.0f))) {
+							const std::string path(musicPathInput.data());
+							const std::filesystem::path folder(std::u8string(path.begin(), path.end()));
+							std::error_code error;
+							if (!path.empty() && std::filesystem::is_directory(folder, error)) {
+								player.Stop();
+								files.SetPathToMusicDirectory(std::string(path));
+								invalidMusicPath = false;
+							}
+							else {
+								invalidMusicPath = true;
+							}
+						}
+						if (invalidMusicPath) {
+							ImGui::SameLine();
+							ImGui::TextColored(ImVec4(0.9f, 0.55f, 0.55f, 1.0f), "Folder not found. Check the path and try again.");
+						}
+					}
+					else {
+						ImGui::SetWindowFontScale(1.35f);
+						ImGui::TextUnformatted("All songs");
+						ImGui::SetWindowFontScale(1.0f);
+						ImGui::SameLine();
+						ImGui::TextDisabled("%d tracks", static_cast<int>(files.getFiles()->size()));
+						ImGui::Spacing();
+						if (ImGui::BeginTable("Tracks", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerH |
+							ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_ScrollY)) {
+							ImGui::TableSetupColumn("TITLE", ImGuiTableColumnFlags_WidthStretch, 0.68f);
+							ImGui::TableSetupColumn("LOCATION", ImGuiTableColumnFlags_WidthStretch, 0.32f);
+							ImGui::TableSetupScrollFreeze(0, 1);
+							ImGui::TableHeadersRow();
+							constexpr float trackRowHeight = 42.0f;
+							int index = 0;
+							for (MusicFile& file : *files.getFiles()) {
+								const std::string title = *file.getName();
+								const std::string location = ToUtf8(file.getPath()->parent_path());
+								const bool selected = player.getCurFile() == &file;
+								ImGui::TableNextRow(ImGuiTableRowFlags_None, trackRowHeight);
+								ImGui::TableSetColumnIndex(0);
+								if (ImGui::Selectable((title + "##track" + std::to_string(index)).c_str(), selected,
+									ImGuiSelectableFlags_SpanAllColumns, ImVec2(0.0f, trackRowHeight)))
+									player.Play(file);
+								ImGui::TableSetColumnIndex(1);
+								ImGui::TextDisabled("%s", location.c_str());
+								++index;
+							}
+							ImGui::EndTable();
+						}
+						if (files.getFiles()->empty()) {
+							ImGui::Spacing();
+							ImGui::TextDisabled("No music found. Add WAV, MP3, or FLAC files to your music folder.");
+						}
+					}
 				}
+				ImGui::EndChild();
 			}
 			ImGui::EndChild();
 
@@ -238,7 +332,12 @@ namespace MusicPlayer {
 		}
 	}
 
-	Visuals::Visuals(FilesContainer& files, Player& player) : files(files), player(player) {}
+	Visuals::Visuals(FilesContainer& files, Player& player) : files(files), player(player) {
+		const std::string& musicPath = *files.GetPathToMusicDirectory();
+		const size_t length = (std::min)(musicPath.size(), musicPathInput.size() - 1);
+		std::copy_n(musicPath.data(), length, musicPathInput.data());
+		musicPathInput[length] = '\0';
+	}
 
 	int Visuals::Run() {
 		WNDCLASSEXW wc{ sizeof(wc), CS_CLASSDC, WindowProc, 0, 0, GetModuleHandleW(nullptr), nullptr, nullptr,
@@ -259,6 +358,7 @@ namespace MusicPlayer {
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+		LoadUnicodeFonts(io);
 		ApplyStyle();
 		ImGui_ImplWin32_Init(window);
 		ImGui_ImplDX11_Init(g_device, g_context);
@@ -283,7 +383,7 @@ namespace MusicPlayer {
 			ImGui_ImplDX11_NewFrame();
 			ImGui_ImplWin32_NewFrame();
 			ImGui::NewFrame();
-			DrawApp(files, player);
+			DrawApp(files, player, menuOpen, settingsOpen, invalidMusicPath, musicPathInput);
 			ImGui::Render();
 			const float clearColor[4] = { 0.035f, 0.035f, 0.035f, 1.0f };
 			g_context->OMSetRenderTargets(1, &g_renderTarget, nullptr);

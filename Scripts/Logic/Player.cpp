@@ -126,6 +126,15 @@ namespace MusicPlayer
 		}
 	}
 
+	void Player::Stop() {
+		if (soundInitialized) {
+			ma_sound_uninit(&sound);
+			soundInitialized = false;
+		}
+		curFile = nullptr;
+		isPlaying = false;
+	}
+
 	const float& Player::getVolume() const {
 		return volume;
 	}
