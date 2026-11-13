@@ -1,18 +1,14 @@
 #include "Scripts/Data/FilesContainer.h"
 #include "Scripts/Data/Saver.h"
 #include "Scripts/Logic/Player.h"
+#include "Scripts/Presentation/Visuals.h"
 
-#include <exception>
-#include <iostream>
+#include <windows.h>
 
-int main() {
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 	MusicPlayer::Saver saver{};
 	MusicPlayer::FilesContainer data(saver);
 	MusicPlayer::Player player(data, saver);
-
-	while (true) {
-		player.Update();
-	}
-
-	return 0;
+	MusicPlayer::Visuals visuals(data, player);
+	return visuals.Run();
 }

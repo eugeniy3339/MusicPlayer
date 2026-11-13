@@ -1,7 +1,8 @@
 Dear ImGui is vendored from https://github.com/ocornut/imgui.
 
-Upstream commit: 8c8b8fc266e8cd7fac09340c0373abc28732adb0
+Upstream branch: docking
+Upstream commit: cf53467ab0db7a783f04b32dd9160e6aa5b720ef
 License: see LICENSE.txt (MIT).
 
-The Visual Studio project builds Dear ImGui's core library sources. Rendering
-platform and graphics backends are not wired into the application yet.
+The application uses the Win32 and DirectX 11 backends. Update this vendored
+copy from the upstream docking branch and keep the backend sources in sync.

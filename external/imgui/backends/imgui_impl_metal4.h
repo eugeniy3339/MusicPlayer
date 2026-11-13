@@ -6,6 +6,7 @@
 //  [X] Renderer: User texture binding. Use 'MTLTexture.gpuResourceID' as texture identifier. Read the FAQ about ImTextureID/ImTextureRef!
 //  [X] Renderer: Large meshes support (64k+ vertices) even with 16-bit indices (ImGuiBackendFlags_RendererHasVtxOffset).
 //  [X] Renderer: Texture updates support for dynamic font atlas (ImGuiBackendFlags_RendererHasTextures).
+//  [X] Renderer: Multi-viewport support (multiple windows).
 // Missing features or Issues:
 //  [ ] Texture view pool support? Reevaluate which type to use for ImtextureID.
 
@@ -39,16 +40,13 @@ IMGUI_IMPL_API void ImGui_ImplMetal4_Shutdown();
 // frameInFlightIndex must match the slot you use to index your own per-frame-in-flight resources
 // (e.g. the same index used to pick your command buffer/allocator), and must be < framesInFlight passed to Init().
 IMGUI_IMPL_API void ImGui_ImplMetal4_NewFrame(MTL4RenderPassDescriptor* renderPassDescriptor, int frameInFlightIndex);
-IMGUI_IMPL_API void ImGui_ImplMetal4_RenderDrawData(ImDrawData* drawData,
+IMGUI_IMPL_API void ImGui_ImplMetal4_RenderDrawData(ImDrawData* draw_data,
                                                    id<MTL4CommandBuffer> commandBuffer,
                                                    id<MTL4RenderCommandEncoder> commandEncoder);
 
 // Called by Init/NewFrame/Shutdown
 IMGUI_IMPL_API bool ImGui_ImplMetal4_CreateDeviceObjects(id<MTLDevice> device);
 IMGUI_IMPL_API void ImGui_ImplMetal4_DestroyDeviceObjects();
-
-// (Advanced) Use e.g. if you need to precisely control the timing of texture updates (e.g. for staged rendering), by setting ImDrawData::Textures = nullptr to handle this manually.
-IMGUI_IMPL_API void ImGui_ImplMetal4_UpdateTexture(ImTextureData* tex);
 
 #endif
 
@@ -78,11 +76,18 @@ IMGUI_IMPL_API void ImGui_ImplMetal4_RenderDrawData(ImDrawData* draw_data,
 IMGUI_IMPL_API bool ImGui_ImplMetal4_CreateDeviceObjects(MTL::Device* device);
 IMGUI_IMPL_API void ImGui_ImplMetal4_DestroyDeviceObjects();
 
+#endif
+#endif
+
+//-----------------------------------------------------------------------------
+// Shared
+//-----------------------------------------------------------------------------
+
 // (Advanced) Use e.g. if you need to precisely control the timing of texture updates (e.g. for staged rendering), by setting ImDrawData::Textures = nullptr to handle this manually.
 IMGUI_IMPL_API void ImGui_ImplMetal4_UpdateTexture(ImTextureData* tex);
 
-#endif
-#endif
+// (Advanced) Multi-viewport: enable vsync (CAMetalLayer.displaySyncEnabled) on secondary viewport windows. Default: disabled. macOS only.
+IMGUI_IMPL_API void ImGui_ImplMetal4_SetDisplaySyncEnabled(bool enabled);
 
 //-----------------------------------------------------------------------------
 
