@@ -4,6 +4,9 @@
 #include "../Logic/Player.h"
 
 #include <array>
+#include <filesystem>
+#include <string>
+#include <unordered_set>
 
 namespace MusicPlayer {
 	class Visuals {
@@ -20,5 +23,9 @@ namespace MusicPlayer {
 		bool showCoverArt = false;
 		bool invalidMusicPath = false;
 		std::array<char, 1024> musicPathInput{};
+		std::array<char, 512> searchInput{};
+		std::unordered_set<std::filesystem::path> searchResults;
+		std::string lastSearchQuery;
+		bool searchResultsDirty = true;
 	};
 }
