@@ -5,9 +5,11 @@ Music Player is a native Windows desktop application for browsing and playing a 
 ## Features
 
 - Browse music files in a configurable folder and refresh the library after making changes.
+- Search tracks by filename, with live filtering and a match count.
 - Play, pause, stop, and move to the previous or next track; adjust playback volume.
 - Read track metadata, including title, artist, album, genre, track and disc numbers, composer, year, comments, and descriptions.
 - Switch between a compact title list and a list with embedded cover art.
+- Remember the selected library display mode between runs.
 - Show embedded lyrics for the currently playing track.
 - Save the music folder and volume between runs.
 - Display Unicode text using available system fonts.
