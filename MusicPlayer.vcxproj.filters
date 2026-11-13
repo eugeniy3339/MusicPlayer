@@ -45,6 +45,9 @@
     <ClCompile Include="Scripts\Data\Saver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Scripts\Data\AudioMetadataReader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Scripts\Commands\CommandsListener.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -90,6 +93,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Scripts\Data\Saver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Scripts\Data\AudioMetadataReader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Scripts\Commands\CommandsListener.h">

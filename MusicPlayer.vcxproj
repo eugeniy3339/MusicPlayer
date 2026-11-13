@@ -146,6 +146,7 @@
     <ClCompile Include="external\imgui\backends\imgui_impl_win32.cpp" />
     <ClCompile Include="external\imgui\backends\imgui_impl_dx11.cpp" />
     <ClCompile Include="Scripts\Data\Saver.cpp" />
+    <ClCompile Include="Scripts\Data\AudioMetadataReader.cpp" />
     <ClCompile Include="Scripts\Presentation\Visuals.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -164,6 +165,7 @@
     <ClInclude Include="external\imgui\backends\imgui_impl_win32.h" />
     <ClInclude Include="external\imgui\backends\imgui_impl_dx11.h" />
     <ClInclude Include="Scripts\Data\Saver.h" />
+    <ClInclude Include="Scripts\Data\AudioMetadataReader.h" />
     <ClInclude Include="Scripts\Presentation\Visuals.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

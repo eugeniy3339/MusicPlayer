@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <utility>
 
 namespace MusicPlayer {
 	namespace {
@@ -25,9 +26,13 @@ namespace MusicPlayer {
 		return &name;
 	}
 
-	MusicFile::MusicFile(std::filesystem::path path) {
-		this->path = path;
-		name = getName(this->path);
+	const AudioMetadata& MusicFile::getMetadata() const {
+		return metadata;
+	}
+
+	MusicFile::MusicFile(std::filesystem::path path)
+		: path(std::move(path)), metadata(ReadAudioMetadata(this->path)) {
+		name = metadata.getTitle().empty() ? getName(this->path) : metadata.getTitle();
 	}
 	MusicFile::~MusicFile() = default;
 

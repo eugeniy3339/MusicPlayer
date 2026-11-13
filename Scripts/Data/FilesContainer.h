@@ -4,6 +4,7 @@
 #include <filesystem>
 #include "../musicplayerfunctions.h"
 #include "Saver.h"
+#include "AudioMetadataReader.h"
 #include "../../external/eventpp/callbacklist.h"
 
 namespace MusicPlayer {
@@ -11,6 +12,7 @@ namespace MusicPlayer {
 	private:
 		std::filesystem::path path;
 		std::string name;
+		AudioMetadata metadata;
 
 		std::string getName(const std::filesystem::path& filePath);
 	public:
@@ -19,6 +21,7 @@ namespace MusicPlayer {
 
 		std::filesystem::path* getPath();
 		std::string* getName();
+		const AudioMetadata& getMetadata() const;
 	};
 
 	class FilesContainer {
