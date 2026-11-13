@@ -68,4 +68,14 @@ namespace MusicPlayer {
 		curJson["Volume"] = volume;
 		WriteJson();
 	}
+
+	int Saver::GetFilesListShowingType() {
+		if (!curJson.contains("FilesListShowingType") || !curJson["FilesListShowingType"].is_number())
+			return 0;
+		return curJson["FilesListShowingType"].get<int>();
+	}
+	void Saver::SaveFilesListShowingType(int& type) {
+		curJson["FilesListShowingType"] = type;
+		WriteJson();
+	}
 }

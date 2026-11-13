@@ -3,6 +3,7 @@
 #include "../../external/imgui/backends/imgui_impl_dx11.h"
 #include "../../external/imgui/backends/imgui_impl_win32.h"
 #include "../../external/imgui/imgui.h"
+#include "../musicplayerfunctions.h"
 
 #include <d3d11.h>
 #include <windows.h>
@@ -302,8 +303,10 @@ namespace MusicPlayer {
 			colors[ImGuiCol_TableRowBgAlt] = ImVec4(0.085f, 0.085f, 0.085f, 1.0f);
 		}
 
-		void DrawApp(FilesContainer& files, Player& player, bool& menuOpen, bool& settingsOpen,
+		void DrawApp(FilesContainer& files, Player& player, Saver& saver, bool& menuOpen, bool& settingsOpen,
 			bool& lyricsOpen, bool& showCoverArt, bool& invalidMusicPath,
+			std::array<char, 512>& searchInput, std::unordered_set<std::filesystem::path>& searchResults,
+			std::string& lastSearchQuery, bool& searchResultsDirty,
 			std::array<char, 1024>& musicPathInput) {
 			const ImGuiViewport* viewport = ImGui::GetMainViewport();
 			ImGui::SetNextWindowPos(viewport->Pos, ImGuiCond_Always);
@@ -368,6 +371,7 @@ namespace MusicPlayer {
 								ClearCoverArtTextures();
 								files.SetPathToMusicDirectory(std::string(path));
 								invalidMusicPath = false;
+								searchResultsDirty = true;
 							}
 							else {
 								invalidMusicPath = true;
@@ -379,24 +383,46 @@ namespace MusicPlayer {
 						}
 					}
 					else {
+						ImGui::SetNextItemWidth(-1.0f);
+						if (ImGui::InputTextWithHint("##TrackSearch", "Search your music", searchInput.data(), searchInput.size()))
+							searchResultsDirty = true;
+						const std::string searchQuery(searchInput.data());
+						auto updateSearchResults = [&]() {
+							if (!searchResultsDirty && searchQuery == lastSearchQuery)
+								return;
+							lastSearchQuery = searchQuery;
+							searchResults.clear();
+							if (!searchQuery.empty()) {
+								std::vector<MusicFile> matchingFiles = files.GetMatchingFiles(Utf8ToWide(searchQuery));
+								for (MusicFile& matchingFile : matchingFiles)
+									searchResults.insert(*matchingFile.getPath());
+							}
+							searchResultsDirty = false;
+						};
+						updateSearchResults();
+						ImGui::Spacing();
 						ImGui::SetWindowFontScale(1.35f);
 						ImGui::TextUnformatted("All songs");
 						ImGui::SetWindowFontScale(1.0f);
 						ImGui::SameLine();
-						ImGui::TextDisabled("%d tracks", static_cast<int>(files.getFiles()->size()));
+						if (searchQuery.empty())
+							ImGui::TextDisabled("%d tracks", static_cast<int>(files.getFiles()->size()));
+						else
+							ImGui::TextDisabled("%d matches", static_cast<int>(searchResults.size()));
 						ImGui::SameLine(0.0f, 14.0f);
 						if (ImGui::Button("REFRESH")) {
 							ClearCoverArtTextures();
 							files.RefreshList();
+							searchResultsDirty = true;
 						}
+						updateSearchResults();
 						ImGui::SameLine(0.0f, 20.0f);
 						const bool titleOnlyActive = !showCoverArt;
 						if (titleOnlyActive) {
 							ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.94f, 0.94f, 0.94f, 1.0f));
 							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
 						}
-						if (ImGui::Button("TITLE ONLY"))
-							showCoverArt = false;
+						const bool titleOnlyClicked = ImGui::Button("TITLE ONLY");
 						if (titleOnlyActive)
 							ImGui::PopStyleColor(2);
 						ImGui::SameLine();
@@ -405,10 +431,19 @@ namespace MusicPlayer {
 							ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.94f, 0.94f, 0.94f, 1.0f));
 							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.05f, 0.05f, 0.05f, 1.0f));
 						}
-						if (ImGui::Button("TITLE + COVER"))
-							showCoverArt = true;
+						const bool coverArtClicked = ImGui::Button("TITLE + COVER");
 						if (coverArtActive)
 							ImGui::PopStyleColor(2);
+						if (titleOnlyClicked) {
+							showCoverArt = false;
+							int showingType = 0;
+							saver.SaveFilesListShowingType(showingType);
+						}
+						else if (coverArtClicked) {
+							showCoverArt = true;
+							int showingType = 1;
+							saver.SaveFilesListShowingType(showingType);
+						}
 						ImGui::Spacing();
 						const int columnCount = showCoverArt ? 2 : 1;
 						const char* tableId = showCoverArt ? "TracksWithCoverArt" : "TracksTitleOnly";
@@ -425,6 +460,8 @@ namespace MusicPlayer {
 							ImGui::TableHeadersRow();
 							int index = 0;
 							for (MusicFile& file : *files.getFiles()) {
+								if (!searchQuery.empty() && !searchResults.contains(*file.getPath()))
+									continue;
 								const std::string title = *file.getName();
 								const bool selected = player.getCurFile() == &file;
 								const float trackRowHeight = showCoverArt ? 64.0f : 42.0f;
@@ -464,6 +501,10 @@ namespace MusicPlayer {
 						if (files.getFiles()->empty()) {
 							ImGui::Spacing();
 							ImGui::TextDisabled("No music found. Add WAV, MP3, or FLAC files to your music folder.");
+						}
+						else if (!searchQuery.empty() && searchResults.empty()) {
+							ImGui::Spacing();
+							ImGui::TextDisabled("No tracks match your search.");
 						}
 					}
 				}
@@ -543,7 +584,8 @@ namespace MusicPlayer {
 		}
 	}
 
-	Visuals::Visuals(FilesContainer& files, Player& player) : files(files), player(player) {
+	Visuals::Visuals(FilesContainer& files, Player& player, Saver& saver) : files(files), player(player), saver(saver) {
+		showCoverArt = saver.GetFilesListShowingType() == 1;
 		const std::string& musicPath = *files.GetPathToMusicDirectory();
 		const size_t length = (std::min)(musicPath.size(), musicPathInput.size() - 1);
 		std::copy_n(musicPath.data(), length, musicPathInput.data());
@@ -596,8 +638,9 @@ namespace MusicPlayer {
 			ImGui_ImplDX11_NewFrame();
 			ImGui_ImplWin32_NewFrame();
 			ImGui::NewFrame();
-			DrawApp(files, player, menuOpen, settingsOpen, lyricsOpen, showCoverArt,
-				invalidMusicPath, musicPathInput);
+			DrawApp(files, player, saver, menuOpen, settingsOpen, lyricsOpen, showCoverArt,
+				invalidMusicPath, searchInput, searchResults, lastSearchQuery, searchResultsDirty,
+				musicPathInput);
 			ImGui::Render();
 			const float clearColor[4] = { 0.035f, 0.035f, 0.035f, 1.0f };
 			g_context->OMSetRenderTargets(1, &g_renderTarget, nullptr);
