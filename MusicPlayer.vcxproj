@@ -139,6 +139,7 @@
     <ClCompile Include="Scripts\musicplayerfunctions.cpp" />
     <ClCompile Include="Scripts\Commands\CommandsListener.cpp" />
     <ClCompile Include="Scripts\Logic\Player.cpp" />
+    <ClCompile Include="Scripts\Logic\HeadphonesInputsHandler.cpp" />
     <ClCompile Include="external\imgui\imgui.cpp" />
     <ClCompile Include="external\imgui\imgui_draw.cpp" />
     <ClCompile Include="external\imgui\imgui_tables.cpp" />
@@ -156,6 +157,7 @@
     <ClInclude Include="Scripts\Commands\CommandsListener.h" />
     <ClInclude Include="Scripts\musicplayerfunctions.h" />
     <ClInclude Include="Scripts\Logic\Player.h" />
+    <ClInclude Include="Scripts\Logic\HeadphonesInputsHandler.h" />
     <ClInclude Include="external\imgui\imconfig.h" />
     <ClInclude Include="external\imgui\imgui.h" />
     <ClInclude Include="external\imgui\imgui_internal.h" />

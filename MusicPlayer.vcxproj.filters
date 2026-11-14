@@ -24,6 +24,9 @@
     <ClCompile Include="Scripts\Logic\Player.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Scripts\Logic\HeadphonesInputsHandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="external\imgui\imgui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -63,6 +66,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Scripts\Logic\Player.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Scripts\Logic\HeadphonesInputsHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="external\miniaudio.h">

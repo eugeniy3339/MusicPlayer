@@ -1,4 +1,5 @@
 #include "Visuals.h"
+#include "../Logic/HeadphonesInputsHandler.h"
 
 #include "../../external/imgui/backends/imgui_impl_dx11.h"
 #include "../../external/imgui/backends/imgui_impl_win32.h"
@@ -604,8 +605,17 @@ namespace MusicPlayer {
 			UnregisterClassW(wc.lpszClassName, wc.hInstance);
 			return 1;
 		}
-		const HRESULT comResult = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-		const bool uninitializeCom = SUCCEEDED(comResult);
+		HeadphonesInputsHandler headphonesInputsHandler(player);
+		bool winrtApartmentInitialized = false;
+		try {
+			// miniaudio initializes COM as MTA on this thread, so WinRT must use MTA too.
+			winrt::init_apartment(winrt::apartment_type::multi_threaded);
+			winrtApartmentInitialized = true;
+			headphonesInputsHandler.Initialize(window);
+		}
+		catch (const winrt::hresult_error&) {
+			OutputDebugStringW(L"Windows media controls could not be initialized.\n");
+		}
 
 		ShowWindow(window, SW_SHOWDEFAULT);
 		UpdateWindow(window);
@@ -627,6 +637,7 @@ namespace MusicPlayer {
 				if (message.message == WM_QUIT) running = false;
 			}
 			if (!running) break;
+			headphonesInputsHandler.ProcessPendingInputs();
 			if (g_resizeWidth && g_resizeHeight) {
 				CleanupRenderTarget();
 				g_swapChain->ResizeBuffers(0, g_resizeWidth, g_resizeHeight, DXGI_FORMAT_UNKNOWN, 0);
@@ -650,12 +661,13 @@ namespace MusicPlayer {
 		}
 
 		ImGui_ImplDX11_Shutdown();
+		headphonesInputsHandler.Shutdown();
 		ImGui_ImplWin32_Shutdown();
 		ImGui::DestroyContext();
 		ClearCoverArtTextures();
 		CleanupDeviceD3D();
-		if (uninitializeCom)
-			CoUninitialize();
+		if (winrtApartmentInitialized)
+			winrt::uninit_apartment();
 		DestroyWindow(window);
 		UnregisterClassW(wc.lpszClassName, wc.hInstance);
 		return 0;
